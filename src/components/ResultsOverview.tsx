@@ -8,7 +8,7 @@
  * - Investment rating
  */
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useUIStore } from '@/stores/uiStore';
 import { EngineResult } from '../domain/services/CalculationEngine';
@@ -30,6 +30,14 @@ export const ResultsOverview: React.FC<ResultsOverviewProps> = ({
 }) => {
   const { t } = useTranslation();
   const setAIChatOpen = useUIStore((state) => state.setAIChatOpen);
+  const [animated, setAnimated] = useState(false);
+
+  // Trigger animations when result changes
+  useEffect(() => {
+    setAnimated(false);
+    const timer = setTimeout(() => setAnimated(true), 100);
+    return () => clearTimeout(timer);
+  }, [result]);
 
   if (loading) {
     return (
@@ -72,28 +80,34 @@ export const ResultsOverview: React.FC<ResultsOverviewProps> = ({
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* IRR Card */}
-        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+        <div className={`bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 ${animated ? 'animate-fade-in-up' : 'opacity-0'}`} style={{ animationDelay: '0ms' }}>
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">{t('results.financials.irr')}</p>
-              <p className={`mt-2 text-3xl font-bold ${irrValue > 0 ? 'text-gray-900' : 'text-red-600'}`}>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-600 mb-1">{t('results.financials.irr')}</p>
+              <p className={`mt-2 text-3xl font-bold transition-all duration-500 ${irrValue > 0 ? 'text-gray-900' : 'text-red-600'}`}>
                 {typeof irrValue === 'number' ? irrValue.toFixed(2) + '%' : '---'}
               </p>
-              {irrValue <= 0 && irrValue !== 0 && (
-                <p className="text-xs text-red-500 mt-1">项目无法盈利</p>
+              {irrValue > 0 && irrValue < 6 && (
+                <p className="text-xs text-orange-500 mt-1 font-medium">⚠️ 回报较低</p>
               )}
-              {irrValue === 0 && (
-                <p className="text-xs text-red-500 mt-1">项目无法盈利</p>
+              {irrValue >= 6 && irrValue < 8 && (
+                <p className="text-xs text-yellow-600 mt-1 font-medium">📊 一般水平</p>
+              )}
+              {irrValue >= 8 && (
+                <p className="text-xs text-green-600 mt-1 font-medium">✓ 投资价值良好</p>
               )}
             </div>
-            <div className={`w-12 h-12 rounded-full ${rating.bg} flex items-center justify-center`}>
-              <svg className={`w-6 h-6 ${rating.color}`} fill="currentColor" viewBox="0 0 20 20">
+            <div className={`w-14 h-14 rounded-2xl ${rating.bg} flex items-center justify-center ml-3 transition-all duration-300 hover:scale-110`}>
+              <svg className={`w-7 h-7 ${rating.color}`} fill="currentColor" viewBox="0 0 20 20">
                 <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
               </svg>
             </div>
           </div>
           {benchmarkComparison && benchmarkComparison.percentiles && (
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-3 text-xs text-gray-500 flex items-center">
+              <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
               {t('benchmark.comparison.comparable')}: {getPercentileLabel(benchmarkComparison.percentiles.irr || benchmarkComparison.percentileIRR || 0)}
             </p>
           )}
