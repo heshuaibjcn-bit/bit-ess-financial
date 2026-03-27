@@ -11,3 +11,28 @@ export { ErrorBoundary, withErrorBoundary, useErrorHandler } from './ErrorBounda
 export { AppErrorBoundary } from './AppErrorBoundary';
 export { PageErrorBoundary } from './PageErrorBoundary';
 export { FeatureErrorBoundary } from './FeatureErrorBoundary';
+
+// PDF Components
+export {
+  InvestmentReportPDF,
+  SensitivityReportPDF,
+  QuickSummaryPDF,
+} from './PDF/InvestmentReportPDF';
+
+// Export Components
+export { PDFExportButton } from './Export/PDFExportButton';
+export {
+  Disclaimer,
+  InlineDisclaimer,
+  RiskWarning,
+  RegulatoryNotice,
+  TermsLink,
+  type DisclaimerProps,
+} from './Disclaimer';
+
+// Report Disclaimers
+export {
+  ReportDisclaimer,
+  RegulatoryNotice as ReportRegulatoryNotice,
+  CertificationNotice,
+} from './Export/ReportDisclaimer';

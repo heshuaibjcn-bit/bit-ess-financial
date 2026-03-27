@@ -18,13 +18,21 @@
 - **Context:** Performance bottleneck identified in review; 10-year cash flow calculations are expensive
 - **Depends on / blocked by:** Week 3-4 (Financial calculator engine) — cache layer built on top
 
-### Async PDF generation
+### Async PDF generation ✅
 - **What:** Implement background job queue for PDF generation with polling endpoint
 - **Why:** Large projects (10-year cash flow + sensitivity charts) will timeout synchronous requests
 - **Pros:** Prevents request timeouts, better UX (loading state → ready), retry capability
 - **Cons:** Adds job queue infrastructure (BullMQ, Faktory, etc.), polling complexity
 - **Context:** UX requirement — users can't wait 60s for a PDF with no feedback
-- **Depends on / blocked by:** Week 11-12 (PDF export) — job queue parallel workstream
+- **Status:** COMPLETED
+  - Created JobQueue service with status tracking (pending, processing, completed, failed)
+  - Created PDFGenerator service using @react-pdf/renderer
+  - Created three bilingual PDF templates (InvestmentReportPDF, SensitivityReportPDF, QuickSummaryPDF)
+  - Created PDFExportButton component with progress tracking
+  - Created React hooks (usePDF, useAsyncPDF, usePDFJobs)
+  - Fixed bugs in InvestmentReportPDF (revenueBreakdown typo)
+  - 24 comprehensive tests (all passing)
+  - Features: job queue, progress tracking (0-100%), error handling, download functionality
 
 ### Domain layer abstraction ✅
 - **What:** Create `/domain` layer with Models, Services, Repositories (separated from API/UI)
@@ -109,13 +117,28 @@
 
 ## Data & Content
 
-### Province data JSON schema
+### Province data JSON schema ✅
 - **What:** Define JSON schema for 31 provinces with validation (peak/valley pricing, compensation policies, etc.)
 - **Why:** Province data is the foundation; schema errors propagate to all calculations
 - **Pros:** Catches data entry errors, enables validation, documents data structure
 - **Cons:** Schema design effort, migration when policies change
 - **Context:** Data quality requirement — wrong province data = wrong benchmarking
-- **Depends on / blocked by:** Week 1-2 (data layer) — must precede calculator engine
+- **Status:** COMPLETED
+  - Created ProvinceSchema.enhanced.ts with 12+ sub-schemas:
+    - TimePeriod, Season, Pricing (peak/valley/shoulder with time periods)
+    - CapacityCompensation (4 types: discharge/capacity/availability/performance-based)
+    - DemandResponse (peak/valley/shoulder compensation)
+    - AuxiliaryServices (frequency regulation, peaking, reactive power, voltage, black start)
+    - TaxSubsidy (VAT, investment subsidy, feed-in tariffs)
+    - GridConnection (fees, requirements, approval timeline)
+    - MarketEligibility (spot market, ancillary services, peak shaving)
+    - Geography (7 regions, economic indicators, renewable penetration)
+    - DataMetadata (source validation, confidence levels, notes)
+  - Cross-field validation (peak > valley, effective < expiry, compensation type matches rates)
+  - Support for all 31 provinces with codes and geographic regions
+  - Example data for 8 provinces (Guangdong, Shandong, Jiangsu, Zhejiang, Hebei, Shanxi, Inner Mongolia, Sichuan)
+  - 56 comprehensive tests (all passing)
+  - Features: strict type validation, business logic validation, data quality tracking
 
 ### Model validation plan execution
 - **What:** Execute peer review, comparison testing, third-party audit, transparency publish as specified in design doc
@@ -127,13 +150,23 @@
 
 ## Performance & Scalability
 
-### Sensitivity analysis precomputation
+### Sensitivity analysis precomputation ✅
 - **What:** Implement background job for sensitivity grids (one-way, two-way) with caching
 - **Why:** Sensitive analysis requires 60+ IRR calculations; blocks UI if synchronous
 - **Pros:** Non-blocking UI, reusable results, better UX
 - **Cons:** Adds job queue complexity, cache invalidation
 - **Context:** Performance issue identified in review; sensitivity is feature #4
-- **Depends on / blocked by:** Week 7-8 (Scenario builder & sensitivity) — parallel with async PDF work
+- **Status:** COMPLETED
+  - Created SensitivityPrecomputeService with:
+    - Background job management (pending, running, completed, failed)
+    - Cache integration using existing CacheService
+    - Job status tracking and polling
+    - One-way and two-way sensitivity analysis
+    - IRR matrix computation for two-way analysis
+    - Progress tracking (0-100%)
+  - Created React hooks (useSensitivityPrecompute, useSensitivityCache, useSensitivityJobs)
+  - Created comprehensive tests (32 tests, all passing)
+  - Features: job cancellation, automatic cleanup, TTL-based caching, statistics
 
 ## Security & Compliance
 
