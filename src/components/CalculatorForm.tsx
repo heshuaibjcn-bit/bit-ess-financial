@@ -28,10 +28,11 @@ import { OwnerInfoStep } from './form-steps/OwnerInfoStep';
 import { TariffDetailsStep } from './form-steps/TariffDetailsStep';
 import { TechnicalAssessmentStep } from './form-steps/TechnicalAssessmentStep';
 import { FinancialModelStep } from './form-steps/FinancialModelStep';
+import { DataAnalysisStep } from './form-steps/DataAnalysisStep';
 import { ReportOutputStep } from './form-steps/ReportOutputStep';
 
 // Form step types
-type FormStep = 0 | 1 | 2 | 3 | 4;
+type FormStep = 0 | 1 | 2 | 3 | 4 | 5;
 
 interface CalculatorFormProps {
   defaultValues?: Partial<ProjectInput>;
@@ -197,7 +198,8 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
       1: ['tariffDetail.tariffType', 'tariffDetail.peakPrice', 'tariffDetail.valleyPrice', 'tariffDetail.flatPrice', 'tariffDetail.hourlyPrices'],
       2: [], // Technical assessment - auto-generated, no required input
       3: [], // Financial model - auto-calculated, no required input
-      4: [], // Report output - no input required
+      4: [], // Data analysis - auto-generated, no required input
+      5: [], // Report output - no input required
     };
 
     const requiredFields = stepRequiredFields[currentStep as keyof typeof stepRequiredFields] || [];
@@ -245,7 +247,7 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
     }
   }, [onSubmit]);
 
-  // Step configuration - NEW: Business-driven 5-step workflow
+  // Step configuration - NEW: Business-driven 6-step workflow
   const steps = [
     {
       title: t('calculator.steps.ownerInfo'),
@@ -262,6 +264,10 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
     {
       title: t('calculator.steps.financialModel'),
       component: FinancialModelStep,
+    },
+    {
+      title: t('calculator.steps.dataAnalysis'),
+      component: DataAnalysisStep,
     },
     {
       title: t('calculator.steps.reportOutput'),

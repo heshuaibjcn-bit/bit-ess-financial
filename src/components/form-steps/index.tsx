@@ -16,5 +16,5 @@ export { OwnerInfoStep } from './OwnerInfoStep';
 export { TariffDetailsStep } from './TariffDetailsStep';
 export { TechnicalAssessmentStep } from './TechnicalAssessmentStep';
 export { FinancialModelStep } from './FinancialModelStep';
+export { DataAnalysisStep } from './DataAnalysisStep';
 export { ReportOutputStep } from './ReportOutputStep';
-// Force rebuild 2026年 3月28日 星期六 01时03分42秒 CST

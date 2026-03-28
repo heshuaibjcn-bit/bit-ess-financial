@@ -89,7 +89,7 @@ export const useUIStore = create<UIState>()(
     (set, get) => ({
       // Initial state
       currentStep: 0,
-      totalSteps: 5, // Basic info → Costs → Operating → Operating Costs → Financing
+      totalSteps: 6, // Owner Info → Tariff → Technical → Financial → Analysis → Report
 
       language: 'zh',
       theme: 'light',
@@ -295,8 +295,8 @@ export const useStepLabels = () => {
   const language = useUIStore((state) => state.language);
 
   const labels = {
-    zh: ['业主信息', '电价详情', '技术评估', '财务测算', '整体报告'],
-    en: ['Owner Info', 'Tariff Details', 'Technical Assessment', 'Financial Model', 'Report Output'],
+    zh: ['业主信息', '电价详情', '技术评估', '财务测算', '数据分析', '整体报告'],
+    en: ['Owner Info', 'Tariff Details', 'Technical Assessment', 'Financial Model', 'Data Analysis', 'Report Output'],
   };
 
   return labels[language];
@@ -314,6 +314,7 @@ export const useStepDescriptions = () => {
       '展示当地分时电价政策，24小时分布图',
       '基于前两步数据，智能推荐系统配置',
       '基于合作模式和技术方案计算财务指标',
+      '敏感性分析、基准对比和项目评估',
       '生成专业投资评估报告',
     ],
     en: [
@@ -321,6 +322,7 @@ export const useStepDescriptions = () => {
       'Display local TOU tariff policy and 24-hour distribution chart',
       'AI-recommended system configuration based on previous data',
       'Calculate financial metrics based on collaboration model and technical proposal',
+      'Sensitivity analysis, benchmark comparison, and project evaluation',
       'Generate professional investment assessment report',
     ],
   };
