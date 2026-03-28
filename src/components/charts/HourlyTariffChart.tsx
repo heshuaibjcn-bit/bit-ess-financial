@@ -19,7 +19,6 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from 'recharts';
-import { useTranslation } from 'react-i18next';
 import { type HourlyPrice } from '../../domain/schemas/ProjectSchema';
 
 interface HourlyTariffChartProps {
@@ -33,8 +32,6 @@ export const HourlyTariffChart: React.FC<HourlyTariffChartProps> = ({
   height = 300,
   className = '',
 }) => {
-  const { t } = useTranslation();
-
   // Prepare data for the chart
   const chartData = useMemo(() => {
     return hourlyPrices.map((item) => ({
@@ -62,9 +59,17 @@ export const HourlyTariffChart: React.FC<HourlyTariffChartProps> = ({
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
+      const periodName = {
+        peak: '峰时',
+        valley: '谷时',
+        flat: '平时',
+      }[data.period] || data.period;
+
       return (
         <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
-          <p className="text-sm font-medium text-gray-900">{`${t('calculator.tariffDetails.period')}: ${t(`calculator.tariffDetails.period_${data.period}`)}`}</p>
+          <p className="text-sm font-medium text-gray-900">
+            {periodName}电价
+          </p>
           <p className="text-lg font-bold text-gray-900">
             ¥{data.price.toFixed(3)}/kWh
           </p>
@@ -88,26 +93,6 @@ export const HourlyTariffChart: React.FC<HourlyTariffChartProps> = ({
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-          <p className="text-xs text-red-600 font-medium">{t('calculator.tariffDetails.peakPrice')}</p>
-          <p className="text-xl font-bold text-red-700">¥{stats.max.toFixed(3)}</p>
-        </div>
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-          <p className="text-xs text-green-600 font-medium">{t('calculator.tariffDetails.valleyPrice')}</p>
-          <p className="text-xl font-bold text-green-700">¥{stats.min.toFixed(3)}</p>
-        </div>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-          <p className="text-xs text-yellow-600 font-medium">{t('common.avg')}</p>
-          <p className="text-xl font-bold text-yellow-700">¥{stats.avg.toFixed(3)}</p>
-        </div>
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <p className="text-xs text-blue-600 font-medium">价差</p>
-          <p className="text-xl font-bold text-blue-700">¥{stats.spread.toFixed(3)}</p>
-        </div>
-      </div>
-
       {/* Chart */}
       <div style={{ height }}>
         <ResponsiveContainer width="100%" height="100%">
@@ -115,7 +100,7 @@ export const HourlyTariffChart: React.FC<HourlyTariffChartProps> = ({
             <defs>
               <linearGradient id="colorPeak" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                <stop offset="95%" stopColor="#ef4444 stopOpacity={0} />
               </linearGradient>
               <linearGradient id="colorValley" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8} />
@@ -179,15 +164,15 @@ export const HourlyTariffChart: React.FC<HourlyTariffChartProps> = ({
       <div className="flex items-center justify-center space-x-6 text-sm">
         <div className="flex items-center space-x-2">
           <div className="w-3 h-3 rounded-full bg-red-500" />
-          <span className="text-gray-600">{t('calculator.tariffDetails.period_peak')}</span>
+          <span className="text-gray-600">峰时</span>
         </div>
         <div className="flex items-center space-x-2">
           <div className="w-3 h-3 rounded-full bg-yellow-500" />
-          <span className="text-gray-600">{t('calculator.tariffDetails.period_flat')}</span>
+          <span className="text-gray-600">平时</span>
         </div>
         <div className="flex items-center space-x-2">
           <div className="w-3 h-3 rounded-full bg-green-500" />
-          <span className="text-gray-600">{t('calculator.tariffDetails.period_valley')}</span>
+          <span className="text-gray-600">谷时</span>
         </div>
       </div>
     </div>
