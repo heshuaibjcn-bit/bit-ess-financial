@@ -248,6 +248,9 @@ export const OwnerInfoStep: React.FC = () => {
                 <option key={level} value={level}>{level}</option>
               ))}
             </select>
+            <p className="mt-1 text-xs text-gray-500">
+              {t('calculator.ownerInfo.voltageLevelHint', { defaultValue: '电价类型将根据电压等级自动选择' })}
+            </p>
             {errors.facilityInfo?.voltageLevel && (
               <p className="mt-1 text-sm text-red-600">{errors.facilityInfo.voltageLevel.message}</p>
             )}

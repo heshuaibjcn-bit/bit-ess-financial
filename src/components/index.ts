@@ -57,6 +57,7 @@ export { SettingsPage } from './SettingsPage';
 export { StatisticsDashboard } from './StatisticsDashboard';
 export { ImportExportDialog } from './ImportExportDialog';
 export { TemplateSelectorDialog } from './TemplateSelectorDialog';
+export { TariffUpdateButton } from './TariffUpdateButton';
 
 // UI Components
 export {
