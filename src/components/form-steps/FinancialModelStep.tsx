@@ -93,9 +93,9 @@ export const FinancialModelStep: React.FC = () => {
       investorShare = annualProfitAfterTax * ratio;
       ownerShare = annualProfitAfterTax * (1 - ratio);
     } else if (ownerInfo?.collaborationModel === 'emc') {
-      // EMC mode: use user-defined split ratios
+      // EMC mode: use investor ratio and auto-calculate owner ratio
       const investorRatio = (ownerInfo?.revenueShareRatio || 50) / 100;
-      const ownerRatio = (ownerInfo?.ownerShareRatio || 50) / 100;
+      const ownerRatio = 1 - investorRatio; // Auto-calculate as (100% - investor%)
       investorShare = annualProfitAfterTax * investorRatio;
       ownerShare = annualProfitAfterTax * ownerRatio;
     }
@@ -125,9 +125,9 @@ export const FinancialModelStep: React.FC = () => {
         yearInvestor = yearNetProfit * ratio;
         yearOwner = yearNetProfit * (1 - ratio);
       } else {
-        // EMC mode: use user-defined split ratios
+        // EMC mode: use investor ratio and auto-calculate owner ratio
         const investorRatio = (ownerInfo?.revenueShareRatio || 50) / 100;
-        const ownerRatio = (ownerInfo?.ownerShareRatio || 50) / 100;
+        const ownerRatio = 1 - investorRatio; // Auto-calculate as (100% - investor%)
         yearInvestor = yearNetProfit * investorRatio;
         yearOwner = yearNetProfit * ownerRatio;
       }
@@ -188,10 +188,7 @@ export const FinancialModelStep: React.FC = () => {
             <div className="text-right">
               <p className="text-sm text-purple-700">收益分成</p>
               <p className="text-lg font-semibold text-purple-900">
-                {ownerInfo?.collaborationModel === 'joint_venture'
-                  ? `投资方 ${ownerInfo?.revenueShareRatio || 50}% / 业主 ${100 - (ownerInfo?.revenueShareRatio || 50)}%`
-                  : `投资方 ${ownerInfo?.revenueShareRatio || 50}% / 业主 ${ownerInfo?.ownerShareRatio || 50}%`
-                }
+                {`投资方 ${ownerInfo?.revenueShareRatio || 50}% / 业主 ${100 - (ownerInfo?.revenueShareRatio || 50)}%`}
               </p>
             </div>
           )}

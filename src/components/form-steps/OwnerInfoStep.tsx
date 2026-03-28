@@ -27,8 +27,10 @@ export const OwnerInfoStep: React.FC = () => {
   const { t } = useTranslation();
   const { register, watch, formState: { errors } } = useFormContext();
 
-  // Watch collaboration model for conditional rendering
+  // Watch collaboration model and investor share ratio for conditional rendering
   const collaborationModel = watch('ownerInfo.collaborationModel');
+  const investorShareRatio = watch('ownerInfo.revenueShareRatio') || 50;
+  const ownerShareRatio = 100 - investorShareRatio;
 
   return (
     <div className="space-y-8">
@@ -210,7 +212,7 @@ export const OwnerInfoStep: React.FC = () => {
           {(collaborationModel === 'joint_venture' || collaborationModel === 'emc') && (
             <>
               {/* Investor Share Ratio */}
-              <div className={collaborationModel === 'emc' ? 'md:col-span-1' : 'md:col-span-2'}>
+              <div className="md:col-span-2">
                 <label htmlFor="revenueShareRatio" className="block text-sm font-medium text-gray-700 mb-1">
                   投资方分成比例 <span className="text-red-500">*</span>
                 </label>
@@ -237,33 +239,18 @@ export const OwnerInfoStep: React.FC = () => {
                 )}
               </div>
 
-              {/* Owner Share Ratio (for EMC mode) */}
+              {/* Owner Share Ratio (auto-calculated display for EMC mode) */}
               {collaborationModel === 'emc' && (
-                <div className="md:col-span-1">
-                  <label htmlFor="ownerShareRatio" className="block text-sm font-medium text-gray-700 mb-1">
-                    业主分成比例 <span className="text-red-500">*</span>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    业主分成比例
                   </label>
-                  <div className="relative">
-                    <input
-                      id="ownerShareRatio"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="1"
-                      {...register('ownerInfo.ownerShareRatio', { valueAsNumber: true })}
-                      className={`w-full px-3 py-2 pr-16 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                        errors.ownerInfo?.ownerShareRatio ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="50"
-                    />
-                    <span className="absolute right-3 top-2 text-gray-500">%</span>
+                  <div className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-gray-700">
+                    {ownerShareRatio}%
                   </div>
                   <p className="mt-1 text-xs text-gray-500">
-                    业主分成比例（0-100%）
+                    业主分成比例自动计算（100% - 投资方分成比例）
                   </p>
-                  {errors.ownerInfo?.ownerShareRatio && (
-                    <p className="mt-1 text-sm text-red-600">{errors.ownerInfo.ownerShareRatio.message}</p>
-                  )}
                 </div>
               )}
             </>

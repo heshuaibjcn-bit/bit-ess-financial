@@ -122,7 +122,7 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
         collaborationModel: 'emc',
         contractDuration: 10,
         revenueShareRatio: 50, // 投资方分成比例
-        ownerShareRatio: 50,  // 业主分成比例
+        // ownerShareRatio is auto-calculated as (100 - revenueShareRatio)
       },
       facilityInfo: {
         transformerCapacity: 1000,
