@@ -44,8 +44,8 @@ export const TariffDetailsStep: React.FC = () => {
   const { register, watch, setValue } = useFormContext();
   const tariffService = getTariffService();
 
-  // Watch province, voltage level, and tariff type
-  const province = watch('province') || 'guangdong';
+  // Watch province from project location, voltage level, and tariff type
+  const province = watch('ownerInfo.projectLocation') || 'guangdong';
   const voltageLevel = watch('facilityInfo.voltageLevel') || '0.4kV';
   const tariffType = watch('tariffDetail.tariffType');
 

@@ -93,6 +93,7 @@ export const SAMPLE_PROJECTS: Record<string, Omit<ProjectInput, 'id'>> = {
     ownerInfo: {
       companyName: '示例制造有限公司',
       industry: '制造业',
+      projectLocation: 'guangdong',
       companyScale: 'medium',
       creditRating: 'AA',
       paymentHistory: 'good',
@@ -186,6 +187,7 @@ export const SAMPLE_PROJECTS: Record<string, Omit<ProjectInput, 'id'>> = {
     ownerInfo: {
       companyName: '优质科技有限公司',
       industry: '电子制造业',
+      projectLocation: 'zhejiang',
       companyScale: 'large',
       creditRating: 'AAA',
       paymentHistory: 'excellent',
@@ -276,6 +278,7 @@ export const SAMPLE_PROJECTS: Record<string, Omit<ProjectInput, 'id'>> = {
     ownerInfo: {
       companyName: '稳健贸易公司',
       industry: '商贸物流',
+      projectLocation: 'shanghai',
       companyScale: 'small',
       creditRating: 'A',
       paymentHistory: 'good',
@@ -367,6 +370,7 @@ export const SAMPLE_PROJECTS: Record<string, Omit<ProjectInput, 'id'>> = {
     ownerInfo: {
       companyName: '大型工业园区',
       industry: '化工制造',
+      projectLocation: 'jiangsu',
       companyScale: 'large',
       creditRating: 'AA',
       paymentHistory: 'excellent',

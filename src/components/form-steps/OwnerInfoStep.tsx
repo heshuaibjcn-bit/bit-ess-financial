@@ -20,7 +20,10 @@ import {
   PAYMENT_HISTORIES,
   VOLTAGE_LEVELS,
   ROOF_TYPES,
+  PROVINCES,
+  PROVINCE_NAMES,
   type CollaborationModel,
+  type Province,
 } from '../../domain/schemas/ProjectSchema';
 
 export const OwnerInfoStep: React.FC = () => {
@@ -89,6 +92,33 @@ export const OwnerInfoStep: React.FC = () => {
             {errors.ownerInfo?.industry && (
               <p className="mt-1 text-sm text-red-600">{errors.ownerInfo.industry.message}</p>
             )}
+          </div>
+
+          {/* Project Location */}
+          <div className="md:col-span-2">
+            <label htmlFor="projectLocation" className="block text-sm font-medium text-gray-700 mb-1">
+              项目所在地 <span className="text-red-500">*</span>
+            </label>
+            <select
+              id="projectLocation"
+              {...register('ownerInfo.projectLocation')}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                errors.ownerInfo?.projectLocation ? 'border-red-500' : 'border-gray-300'
+              }`}
+            >
+              <option value="">请选择项目所在地</option>
+              {PROVINCES.map((province) => (
+                <option key={province} value={province}>
+                  {PROVINCE_NAMES[province]}
+                </option>
+              ))}
+            </select>
+            {errors.ownerInfo?.projectLocation && (
+              <p className="mt-1 text-sm text-red-600">{errors.ownerInfo.projectLocation.message}</p>
+            )}
+            <p className="mt-1 text-xs text-gray-500">
+              电价信息将根据项目所在地自动加载
+            </p>
           </div>
         </div>
       </div>

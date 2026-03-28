@@ -13,6 +13,43 @@ export const PROVINCES = [
 
 export type Province = (typeof PROVINCES)[number];
 
+/**
+ * Chinese names for provinces
+ */
+export const PROVINCE_NAMES: Record<Province, string> = {
+  guangdong: '广东省',
+  shandong: '山东省',
+  shanghai: '上海市',
+  zhejiang: '浙江省',
+  jiangsu: '江苏省',
+  anhui: '安徽省',
+  hunan: '湖南省',
+  hubei: '湖北省',
+  henan: '河南省',
+  jiangxi: '江西省',
+  beijing: '北京市',
+  tianjin: '天津市',
+  hebei: '河北省',
+  shanxi: '山西省',
+  neimenggu: '内蒙古自治区',
+  liaoning: '辽宁省',
+  jilin: '吉林省',
+  heilongjiang: '黑龙江省',
+  shaanxi: '陕西省',
+  gansu: '甘肃省',
+  qinghai: '青海省',
+  ningxia: '宁夏回族自治区',
+  xinjiang: '新疆维吾尔自治区',
+  sichuan: '四川省',
+  chongqing: '重庆市',
+  yunnan: '云南省',
+  guizhou: '贵州省',
+  xizang: '西藏自治区',
+  guangxi: '广西壮族自治区',
+  hainan: '海南省',
+  fujian: '福建省',
+};
+
 // ============================================================================
 // NEW BUSINESS-DRIVEN SCHEMAS
 // ============================================================================
@@ -88,6 +125,12 @@ export const OwnerInfoSchema = z.object({
   industry: z.string()
     .min(1, '请输入所属行业')
     .max(100, '行业描述过长'),
+
+  // 项目所在地
+  projectLocation: z.enum(PROVINCES, {
+    required_error: '请选择项目所在地',
+    invalid_type_error: '无效的项目所在地',
+  }),
 
   // 背调信息
   companyScale: z.enum(COMPANY_SCALES),
