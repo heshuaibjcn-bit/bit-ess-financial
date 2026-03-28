@@ -12,10 +12,13 @@
 import React, { useState } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
+import { useCalculator } from '../../hooks/useCalculator';
+import { EngineResult } from '../../domain/services/CalculationEngine';
 
 export const ReportOutputStep: React.FC = () => {
   const { t } = useTranslation();
   const { watch } = useFormContext();
+  const { result: calculationResult } = useCalculator({ debounce: 300 });
   const [showPreview, setShowPreview] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -24,6 +27,24 @@ export const ReportOutputStep: React.FC = () => {
   const facilityInfo = watch('facilityInfo');
   const tariffDetail = watch('tariffDetail');
   const technicalProposal = watch('technicalProposal');
+  const systemSize = watch('systemSize');
+  const costs = watch('costs');
+
+  // Calculate investment rating
+  const getRating = (irr: number = 0) => {
+    if (irr <= 0) return { label: '严重亏损', color: 'text-red-700', bg: 'bg-red-100' };
+    if (irr >= 12) return { label: '优秀', color: 'text-green-600', bg: 'bg-green-50' };
+    if (irr >= 10) return { label: '良好', color: 'text-blue-600', bg: 'bg-blue-50' };
+    if (irr >= 8) return { label: '一般', color: 'text-yellow-600', bg: 'bg-yellow-50' };
+    if (irr >= 6) return { label: '低于平均', color: 'text-orange-600', bg: 'bg-orange-50' };
+    return { label: '较差', color: 'text-red-600', bg: 'bg-red-50' };
+  };
+
+  const irrValue = calculationResult?.irr ?? 0;
+  const npvValue = calculationResult?.npv ?? 0;
+  const paybackValue = calculationResult?.paybackPeriod ?? -1;
+  const lcoeValue = calculationResult?.levelizedCost ?? 0;
+  const rating = getRating(irrValue);
 
   const handleExportPDF = async () => {
     setExporting(true);
@@ -211,8 +232,66 @@ export const ReportOutputStep: React.FC = () => {
                 <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm mr-2">5</span>
                 {chapters[4].title}
               </h2>
-              <div className="pl-8 text-sm text-gray-700">
-                <p className="text-gray-500 italic">（详细财务分析数据请见财务测算章节）</p>
+
+              {/* Key Metrics */}
+              <div className="pl-8 mb-4">
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {/* IRR */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <p className="text-xs font-medium text-gray-600 mb-1">内部收益率 (IRR)</p>
+                    <p className={`text-xl font-bold ${irrValue > 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                      {typeof irrValue === 'number' ? irrValue.toFixed(2) + '%' : '---'}
+                    </p>
+                  </div>
+
+                  {/* NPV */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <p className="text-xs font-medium text-gray-600 mb-1">净现值 (NPV)</p>
+                    <p className={`text-xl font-bold ${npvValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {typeof npvValue === 'number' ? `¥${(npvValue / 10000).toFixed(1)}万` : '---'}
+                    </p>
+                  </div>
+
+                  {/* Payback Period */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <p className="text-xs font-medium text-gray-600 mb-1">投资回收期</p>
+                    <p className={`text-xl font-bold ${paybackValue > 0 && paybackValue < 100 ? 'text-gray-900' : 'text-red-600'}`}>
+                      {paybackValue < 0 || paybackValue >= 100
+                        ? '无法回收'
+                        : typeof paybackValue === 'number' ? `${paybackValue.toFixed(1)} 年` : '---'}
+                    </p>
+                  </div>
+
+                  {/* LCOE */}
+                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                    <p className="text-xs font-medium text-gray-600 mb-1">平准化成本 (LCOE)</p>
+                    <p className="text-xl font-bold text-gray-900">
+                      {typeof lcoeValue === 'number' ? `¥${lcoeValue.toFixed(2)}` : '---'}
+                    </p>
+                    <p className="text-xs text-gray-500">/ kWh</p>
+                  </div>
+                </div>
+
+                {/* Investment Rating */}
+                <div className={`${rating.bg} border ${irrValue < 0 ? 'border-red-300' : 'border-gray-200'} rounded-lg p-4 mb-4`}>
+                  <p className="text-sm font-semibold text-gray-900 mb-1">投资评级</p>
+                  <p className={`text-xl font-bold ${rating.color}`}>
+                    {rating.label}
+                  </p>
+                </div>
+
+                {/* Revenue Summary */}
+                {irrValue > 0 && (
+                  <div className="space-y-2 text-sm">
+                    <p><strong>年收入估算:</strong></p>
+                    <ul className="list-disc list-inside space-y-1 text-gray-700">
+                      <li>峰谷价差套利: ¥{((irrValue * 0.6) / 10000).toFixed(1)}万/年</li>
+                      <li>总装机容量: {systemSize?.capacity || 2} MWh</li>
+                      <li>系统功率: {technicalProposal?.recommendedPower || 1} MW</li>
+                      <li>电池成本: ¥{costs?.batteryCostPerKwh || 1200}/kWh</li>
+                    </ul>
+                  </div>
+                )}
               </div>
             </section>
 
@@ -262,7 +341,7 @@ export const ReportOutputStep: React.FC = () => {
 
       {/* Report Structure */}
       {!showPreview && (
-        <div className="border border-gray-200 rounded-lg p-4">
+        <div className="border border-gray-200 rounded-lg p-4 mb-4">
           <h4 className="text-md font-medium text-gray-800 mb-4">报告章节</h4>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {chapters.map((chapter, index) => (
@@ -273,6 +352,59 @@ export const ReportOutputStep: React.FC = () => {
                 <span className="text-sm font-medium text-gray-700">{chapter.title}</span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Investment Analysis Summary */}
+      {!showPreview && calculationResult && (
+        <div className="border border-gray-200 rounded-lg p-4 mb-4">
+          <h4 className="text-md font-medium text-gray-800 mb-4">投资分析结果摘要</h4>
+
+          {/* Key Metrics Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            {/* IRR */}
+            <div className="bg-white border border-gray-200 rounded-lg p-3">
+              <p className="text-xs font-medium text-gray-600 mb-1">内部收益率</p>
+              <p className={`text-lg font-bold ${irrValue > 0 ? 'text-gray-900' : 'text-red-600'}`}>
+                {typeof irrValue === 'number' ? irrValue.toFixed(2) + '%' : '---'}
+              </p>
+            </div>
+
+            {/* NPV */}
+            <div className="bg-white border border-gray-200 rounded-lg p-3">
+              <p className="text-xs font-medium text-gray-600 mb-1">净现值</p>
+              <p className={`text-lg font-bold ${npvValue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {typeof npvValue === 'number' ? `¥${(npvValue / 10000).toFixed(1)}万` : '---'}
+              </p>
+            </div>
+
+            {/* Payback Period */}
+            <div className="bg-white border border-gray-200 rounded-lg p-3">
+              <p className="text-xs font-medium text-gray-600 mb-1">投资回收期</p>
+              <p className={`text-lg font-bold ${paybackValue > 0 && paybackValue < 100 ? 'text-gray-900' : 'text-red-600'}`}>
+                {paybackValue < 0 || paybackValue >= 100
+                  ? '无法回收'
+                  : typeof paybackValue === 'number' ? `${paybackValue.toFixed(1)}年` : '---'}
+              </p>
+            </div>
+
+            {/* LCOE */}
+            <div className="bg-white border border-gray-200 rounded-lg p-3">
+              <p className="text-xs font-medium text-gray-600 mb-1">平准化成本</p>
+              <p className="text-lg font-bold text-gray-900">
+                {typeof lcoeValue === 'number' ? `¥${lcoeValue.toFixed(2)}` : '---'}
+              </p>
+              <p className="text-xs text-gray-500">/ kWh</p>
+            </div>
+          </div>
+
+          {/* Investment Rating */}
+          <div className={`${rating.bg} border ${irrValue < 0 ? 'border-red-300' : 'border-gray-200'} rounded-lg p-3`}>
+            <p className="text-sm font-semibold text-gray-900">投资评级</p>
+            <p className={`text-lg font-bold ${rating.color}`}>
+              {rating.label}
+            </p>
           </div>
         </div>
       )}
