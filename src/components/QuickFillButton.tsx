@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useProjectStore } from '@/stores/projectStore';
+import { useCloudProjectStore } from '@/stores/cloudProjectStore';
 import { getSampleProject, SAMPLE_PROJECT_DESCRIPTIONS } from '@/config/sampleProjects';
 
 interface QuickFillButtonProps {
@@ -19,12 +19,13 @@ export const QuickFillButton: React.FC<QuickFillButtonProps> = ({
   onFill,
 }) => {
   const { t } = useTranslation();
-  const { setCurrentProject } = useProjectStore();
+  const { updateCurrentProjectFormData } = useCloudProjectStore();
   const [showMenu, setShowMenu] = useState(false);
 
-  const handleFill = (key: keyof typeof SAMPLE_PROJECT_DESCRIPTIONS) => {
+  const handleFill = async (key: keyof typeof SAMPLE_PROJECT_DESCRIPTIONS) => {
     const sampleProject = getSampleProject(key);
-    setCurrentProject(sampleProject);
+    // Update the current project's form data
+    await updateCurrentProjectFormData(sampleProject);
     setShowMenu(false);
     if (onFill) onFill();
   };

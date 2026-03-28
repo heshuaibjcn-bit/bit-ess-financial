@@ -158,10 +158,17 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
     mode: 'onChange',
   });
 
-  const { watch, handleSubmit, trigger } = methods;
+  const { watch, handleSubmit, trigger, reset } = methods;
 
   // Watch all form values for auto-calculation
   const formValues = watch();
+
+  // Reset form when defaultValues change (e.g., when "填入示例" is clicked)
+  useEffect(() => {
+    if (defaultValues && Object.keys(defaultValues).length > 0) {
+      reset(defaultValues);
+    }
+  }, [defaultValues, reset]);
 
   // Auto-calculate on form changes (debounced via useCalculator hook)
   useEffect(() => {

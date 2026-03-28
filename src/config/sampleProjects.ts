@@ -7,222 +7,397 @@
 import type { ProjectInput } from '@/domain/schemas/ProjectSchema';
 
 /**
+ * Helper to generate 24-hour price array
+ */
+function generateHourlyPrices(
+  peakPrice: number,
+  valleyPrice: number,
+  flatPrice: number,
+  peakHours: number[] = [8, 9, 10, 11, 14, 15, 16, 17, 18],
+  valleyHours: number[] = [23, 0, 1, 2, 3, 4, 5, 6]
+): Array<{ hour: number; price: number; period: 'peak' | 'valley' | 'flat' }> {
+  return Array.from({ length: 24 }, (_, hour) => {
+    let period: 'peak' | 'valley' | 'flat' = 'flat';
+    let price = flatPrice;
+
+    if (peakHours.includes(hour)) {
+      period = 'peak';
+      price = peakPrice;
+    } else if (valleyHours.includes(hour)) {
+      period = 'valley';
+      price = valleyPrice;
+    }
+
+    return { hour, price, period };
+  });
+}
+
+/**
  * Sample project configurations
  */
 export const SAMPLE_PROJECTS: Record<string, Omit<ProjectInput, 'id'>> = {
   // 基础示例 - 广东省2MW/2MWh储能项目
   basic: {
-    province: '广东省',
+    // 系统配置
+    province: 'guangdong',
     systemSize: {
       capacity: 2, // 2 MWh
       power: 1, // 1 MW
       duration: 2, // 2 hours
     },
-    costStructure: {
-      batteryCost: 1200,
-      pcsCost: 300,
+    costs: {
+      batteryCostPerKwh: 1200,
+      pcsCostPerKw: 300,
       emsCost: 100000,
-      installationCost: 150,
+      installationCostPerKw: 150,
       gridConnectionCost: 200000,
       landCost: 0,
       developmentCost: 150000,
-      permitCost: 50000,
+      permittingCost: 50000,
       contingencyPercent: 0.05,
     },
-    operatingParameters: {
+    operatingParams: {
       systemEfficiency: 0.88,
       depthOfDischarge: 0.9,
-      dailyCycles: 1.5,
-      annualDegradationRate: 0.02,
-      availability: 0.97,
+      cyclesPerDay: 1.5,
+      degradationRate: 0.02,
+      availabilityPercent: 0.97,
     },
     operatingCosts: {
-      staffSalary: 500000,
-      managementFee: 300000,
-      technicalSupportFee: 200000,
+      operationsStaffCost: 500000,
+      managementCost: 300000,
+      technicalSupportCost: 200000,
       officeRent: 100000,
       officeExpenses: 50000,
-      regularMaintenance: 200000,
-      preventiveMaintenance: 80000,
+      regularMaintenanceCost: 200000,
+      preventiveMaintenanceCost: 80000,
       equipmentInsurance: 100000,
       liabilityInsurance: 50000,
       propertyInsurance: 30000,
       licenseFee: 50000,
       regulatoryFee: 20000,
-      trainingFee: 30000,
-      utilities: 20000,
-      landRent: 100000,
-      salesTaxRate: 0.06,
-      surchargeRate: 0.12,
+      trainingCost: 30000,
+      utilitiesCost: 20000,
+      landLeaseCost: 100000,
+      salesExpenses: 303818,
+      vatRate: 0.06,
+      surtaxRate: 0.12,
       corporateTaxRate: 0.25,
     },
     financing: {
       hasLoan: false,
-      loanAmount: 0,
-      loanInterestRate: 0.04,
-      loanTerm: 10,
+      equityRatio: 1.0,
+      taxHolidayYears: 6,
+    },
+    // 业务驱动字段
+    ownerInfo: {
+      companyName: '示例制造有限公司',
+      industry: '制造业',
+      companyScale: 'medium',
+      creditRating: 'AA',
+      paymentHistory: 'good',
+      collaborationModel: 'emc',
+      contractDuration: 10,
+      revenueShareRatio: 80,
+    },
+    facilityInfo: {
+      transformerCapacity: 1000,
+      voltageLevel: '0.4kV',
+      avgMonthlyLoad: 50000,
+      peakLoad: 500,
+      availableArea: 500,
+      roofType: 'flat',
+      needsExpansion: false,
+      commissionDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    },
+    tariffDetail: {
+      tariffType: 'industrial',
+      peakPrice: 1.0,
+      valleyPrice: 0.4,
+      flatPrice: 0.6,
+      hourlyPrices: generateHourlyPrices(1.0, 0.4, 0.6),
+    },
+    technicalProposal: {
+      recommendedCapacity: 2.0,
+      recommendedPower: 1.0,
+      capacityPowerRatio: 2.0,
+      chargeStrategy: 'arbitrage_only',
+      cycleLife: 6000,
+      expectedThroughput: 10800,
+      optimizedFor: 'balanced',
     },
   },
 
   // 优化示例 - 浙江3MW/4MWh高收益项目
   optimized: {
-    province: '浙江省',
+    province: 'zhejiang',
     systemSize: {
       capacity: 4,
       power: 3,
       duration: 4,
     },
-    costStructure: {
-      batteryCost: 1100, // 更低的电池成本
-      pcsCost: 280,
+    costs: {
+      batteryCostPerKwh: 1100,
+      pcsCostPerKw: 280,
       emsCost: 80000,
-      installationCost: 120,
+      installationCostPerKw: 120,
       gridConnectionCost: 150000,
       landCost: 0,
       developmentCost: 120000,
-      permitCost: 40000,
+      permittingCost: 40000,
       contingencyPercent: 0.03,
     },
-    operatingParameters: {
-      systemEfficiency: 0.92, // 更高效率
+    operatingParams: {
+      systemEfficiency: 0.92,
       depthOfDischarge: 0.95,
-      dailyCycles: 2.0, // 更多循环
-      annualDegradationRate: 0.015,
-      availability: 0.98,
+      cyclesPerDay: 2.0,
+      degradationRate: 0.015,
+      availabilityPercent: 0.98,
     },
     operatingCosts: {
-      staffSalary: 600000,
-      managementFee: 350000,
-      technicalSupportFee: 250000,
+      operationsStaffCost: 600000,
+      managementCost: 350000,
+      technicalSupportCost: 250000,
       officeRent: 120000,
       officeExpenses: 60000,
-      regularMaintenance: 250000,
-      preventiveMaintenance: 100000,
+      regularMaintenanceCost: 250000,
+      preventiveMaintenanceCost: 100000,
       equipmentInsurance: 120000,
       liabilityInsurance: 60000,
       propertyInsurance: 35000,
       licenseFee: 60000,
       regulatoryFee: 25000,
-      trainingFee: 35000,
-      utilities: 25000,
-      landRent: 120000,
-      salesTaxRate: 0.06,
-      surchargeRate: 0.12,
+      trainingCost: 35000,
+      utilitiesCost: 25000,
+      landLeaseCost: 120000,
+      salesExpenses: 350000,
+      vatRate: 0.06,
+      surtaxRate: 0.12,
       corporateTaxRate: 0.25,
     },
     financing: {
       hasLoan: true,
-      loanAmount: 2000000,
+      equityRatio: 0.7,
       loanInterestRate: 0.035,
-      loanTerm: 8,
+      loanTermYears: 8,
+      taxHolidayYears: 6,
+    },
+    ownerInfo: {
+      companyName: '优质科技有限公司',
+      industry: '电子制造业',
+      companyScale: 'large',
+      creditRating: 'AAA',
+      paymentHistory: 'excellent',
+      collaborationModel: 'emc',
+      contractDuration: 12,
+      revenueShareRatio: 85,
+    },
+    facilityInfo: {
+      transformerCapacity: 2000,
+      voltageLevel: '10kV',
+      avgMonthlyLoad: 120000,
+      peakLoad: 1200,
+      availableArea: 800,
+      roofType: 'flat',
+      needsExpansion: false,
+      commissionDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    },
+    tariffDetail: {
+      tariffType: 'large_industrial',
+      peakPrice: 1.2,
+      valleyPrice: 0.35,
+      flatPrice: 0.65,
+      hourlyPrices: generateHourlyPrices(1.2, 0.35, 0.65),
+    },
+    technicalProposal: {
+      recommendedCapacity: 4.0,
+      recommendedPower: 3.0,
+      capacityPowerRatio: 1.33,
+      chargeStrategy: 'mixed',
+      cycleLife: 8000,
+      expectedThroughput: 16000,
+      optimizedFor: 'revenue',
     },
   },
 
-  // 保守示例 - 小规模低风险项目
+  // 保守示例 - 江苏小规模低风险项目
   conservative: {
-    province: '江苏省',
+    province: 'jiangsu',
     systemSize: {
       capacity: 1,
       power: 0.5,
       duration: 2,
     },
-    costStructure: {
-      batteryCost: 1500, // 更高质量但成本更高
-      pcsCost: 400,
+    costs: {
+      batteryCostPerKwh: 1500,
+      pcsCostPerKw: 400,
       emsCost: 150000,
-      installationCost: 200,
+      installationCostPerKw: 200,
       gridConnectionCost: 300000,
       landCost: 50000,
       developmentCost: 200000,
-      permitCost: 80000,
-      contingencyPercent: 0.1, // 更高的应急费用
+      permittingCost: 80000,
+      contingencyPercent: 0.1,
     },
-    operatingParameters: {
+    operatingParams: {
       systemEfficiency: 0.85,
-      depthOfDischarge: 0.8, // 更保守的DOD
-      dailyCycles: 1.0,
-      annualDegradationRate: 0.03,
-      availability: 0.95,
+      depthOfDischarge: 0.8,
+      cyclesPerDay: 1.0,
+      degradationRate: 0.03,
+      availabilityPercent: 0.95,
     },
     operatingCosts: {
-      staffSalary: 400000,
-      managementFee: 250000,
-      technicalSupportFee: 150000,
+      operationsStaffCost: 400000,
+      managementCost: 250000,
+      technicalSupportCost: 150000,
       officeRent: 80000,
       officeExpenses: 40000,
-      regularMaintenance: 300000, // 更高的维护预算
-      preventiveMaintenance: 150000,
+      regularMaintenanceCost: 300000,
+      preventiveMaintenanceCost: 150000,
       equipmentInsurance: 150000,
       liabilityInsurance: 80000,
       propertyInsurance: 50000,
       licenseFee: 60000,
       regulatoryFee: 30000,
-      trainingFee: 40000,
-      utilities: 30000,
-      landRent: 150000,
-      salesTaxRate: 0.06,
-      surchargeRate: 0.12,
+      trainingCost: 40000,
+      utilitiesCost: 30000,
+      landLeaseCost: 150000,
+      salesExpenses: 200000,
+      vatRate: 0.06,
+      surtaxRate: 0.12,
       corporateTaxRate: 0.25,
     },
     financing: {
       hasLoan: false,
-      loanAmount: 0,
-      loanInterestRate: 0.04,
-      loanTerm: 10,
+      equityRatio: 1.0,
+      taxHolidayYears: 6,
+    },
+    ownerInfo: {
+      companyName: '稳健贸易公司',
+      industry: '商贸物流',
+      companyScale: 'small',
+      creditRating: 'A',
+      paymentHistory: 'good',
+      collaborationModel: 'investor_owned',
+      contractDuration: 8,
+    },
+    facilityInfo: {
+      transformerCapacity: 630,
+      voltageLevel: '0.4kV',
+      avgMonthlyLoad: 30000,
+      peakLoad: 300,
+      availableArea: 300,
+      roofType: 'sloped',
+      needsExpansion: false,
+      commissionDate: new Date(Date.now() + 120 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    },
+    tariffDetail: {
+      tariffType: 'commercial',
+      peakPrice: 0.9,
+      valleyPrice: 0.45,
+      flatPrice: 0.6,
+      hourlyPrices: generateHourlyPrices(0.9, 0.45, 0.6),
+    },
+    technicalProposal: {
+      recommendedCapacity: 1.0,
+      recommendedPower: 0.5,
+      capacityPowerRatio: 2.0,
+      chargeStrategy: 'peak_shaving',
+      cycleLife: 5000,
+      expectedThroughput: 5000,
+      optimizedFor: 'cost',
     },
   },
 
-  // 激进示例 - 大规模高回报项目
+  // 激进示例 - 山东大规模高回报项目
   aggressive: {
-    province: '山东省',
+    province: 'shandong',
     systemSize: {
       capacity: 10,
       power: 5,
       duration: 2,
     },
-    costStructure: {
-      batteryCost: 1000, // 激进的低成本假设
-      pcsCost: 250,
+    costs: {
+      batteryCostPerKwh: 1000,
+      pcsCostPerKw: 250,
       emsCost: 60000,
-      installationCost: 100,
+      installationCostPerKw: 100,
       gridConnectionCost: 100000,
       landCost: 0,
       developmentCost: 100000,
-      permitCost: 30000,
+      permittingCost: 30000,
       contingencyPercent: 0.02,
     },
-    operatingParameters: {
-      systemEfficiency: 0.95, // 乐观的效率
+    operatingParams: {
+      systemEfficiency: 0.95,
       depthOfDischarge: 0.98,
-      dailyCycles: 2.5, // 高频使用
-      annualDegradationRate: 0.01,
-      availability: 0.99,
+      cyclesPerDay: 2.5,
+      degradationRate: 0.01,
+      availabilityPercent: 0.99,
     },
     operatingCosts: {
-      staffSalary: 800000,
-      managementFee: 500000,
-      technicalSupportFee: 300000,
+      operationsStaffCost: 800000,
+      managementCost: 500000,
+      technicalSupportCost: 300000,
       officeRent: 150000,
       officeExpenses: 80000,
-      regularMaintenance: 200000,
-      preventiveMaintenance: 80000,
+      regularMaintenanceCost: 200000,
+      preventiveMaintenanceCost: 80000,
       equipmentInsurance: 80000,
       liabilityInsurance: 40000,
       propertyInsurance: 25000,
       licenseFee: 40000,
       regulatoryFee: 15000,
-      trainingFee: 25000,
-      utilities: 15000,
-      landRent: 80000,
-      salesTaxRate: 0.06,
-      surchargeRate: 0.12,
-      corporateTaxRate: 0.15, // 假设税收优惠
+      trainingCost: 25000,
+      utilitiesCost: 15000,
+      landLeaseCost: 80000,
+      salesExpenses: 500000,
+      vatRate: 0.06,
+      surtaxRate: 0.12,
+      corporateTaxRate: 0.15,
     },
     financing: {
       hasLoan: true,
-      loanAmount: 10000000,
+      equityRatio: 0.6,
       loanInterestRate: 0.03,
-      loanTerm: 15,
+      loanTermYears: 15,
+      taxHolidayYears: 6,
+    },
+    ownerInfo: {
+      companyName: '大型工业园区',
+      industry: '化工制造',
+      companyScale: 'large',
+      creditRating: 'AA',
+      paymentHistory: 'excellent',
+      collaborationModel: 'joint_venture',
+      contractDuration: 15,
+      revenueShareRatio: 70,
+    },
+    facilityInfo: {
+      transformerCapacity: 5000,
+      voltageLevel: '35kV',
+      avgMonthlyLoad: 500000,
+      peakLoad: 5000,
+      availableArea: 2000,
+      roofType: 'flat',
+      needsExpansion: true,
+      commissionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    },
+    tariffDetail: {
+      tariffType: 'large_industrial',
+      peakPrice: 1.1,
+      valleyPrice: 0.3,
+      flatPrice: 0.55,
+      hourlyPrices: generateHourlyPrices(1.1, 0.3, 0.55),
+    },
+    technicalProposal: {
+      recommendedCapacity: 10.0,
+      recommendedPower: 5.0,
+      capacityPowerRatio: 2.0,
+      chargeStrategy: 'arbitrage_only',
+      cycleLife: 10000,
+      expectedThroughput: 50000,
+      optimizedFor: 'revenue',
     },
   },
 };
@@ -232,9 +407,8 @@ export const SAMPLE_PROJECTS: Record<string, Omit<ProjectInput, 'id'>> = {
  */
 export function getSampleProject(key: keyof typeof SAMPLE_PROJECTS): ProjectInput {
   return {
-    id: `sample-${key}-${Date.now()}`,
     ...SAMPLE_PROJECTS[key],
-  };
+  } as ProjectInput;
 }
 
 /**
@@ -243,7 +417,7 @@ export function getSampleProject(key: keyof typeof SAMPLE_PROJECTS): ProjectInpu
 export const SAMPLE_PROJECT_DESCRIPTIONS = {
   basic: {
     name: '基础示例',
-    description: '广东省2MW/2MWh储能项目',
+    description: '广东省1MW/2MWh储能项目',
     irr: '约9%',
     risk: '中等',
   },
