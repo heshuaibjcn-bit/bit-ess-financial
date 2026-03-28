@@ -2,16 +2,30 @@
  * Main App Component
  *
  * C&I Energy Storage Investment Calculator
+ * Now with authentication and cloud project management!
  */
 
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './i18n/config'; // Initialize i18n
 import './index.css';
 
+// Import providers and contexts
+import { useAuth } from './contexts/AuthContext';
+
 // Import components
-import { CalculatorForm } from './components/CalculatorForm';
 import { PageErrorBoundary } from './components';
+import { FullPageLoading } from './components/ui';
+
+// Import pages
+import { AuthPage } from './components/AuthPage';
+import { ProjectListPage } from './components/ProjectListPage';
+import { ProjectDetailPage } from './components/ProjectDetailPage';
+import { SettingsPage } from './components/SettingsPage';
+
+// Import calculator components (for unauthenticated/demo mode)
+import { CalculatorForm } from './components/CalculatorForm';
 import { useCalculator } from './hooks/useCalculator';
 import { useAllProvinces } from './hooks/useProvince';
 import { ProjectInput } from './domain/schemas/ProjectSchema';
@@ -23,8 +37,57 @@ import {
   TermsLink,
 } from './components/Disclaimer';
 
-function App() {
-  const { t, i18n } = useTranslation();
+/**
+ * Protected Route Component
+ * Redirects to login if user is not authenticated
+ */
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <FullPageLoading />;
+  }
+
+  if (!user) {
+    // Redirect to login with return location
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return <>{children}</>;
+};
+
+/**
+ * Public Route Component
+ * Redirects to dashboard if user is already authenticated
+ */
+interface PublicRouteProps {
+  children: React.ReactNode;
+}
+
+const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <FullPageLoading />;
+  }
+
+  if (user) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+/**
+ * Demo Calculator (for unauthenticated users)
+ */
+const DemoCalculator: React.FC = () => {
+  const { t } = useTranslation();
   const { result, loading, error, triggerCalculation } = useCalculator({ debounce: 300 });
   const { provinces, loading: loadingProvinces } = useAllProvinces();
   const [language, setLanguage] = useState<'zh' | 'en'>('zh');
@@ -36,17 +99,9 @@ function App() {
   // Handle calculation
   const handleCalculate = async (input: ProjectInput) => {
     try {
-      console.log('🔥 handleCalculate called with:', input);
       await triggerCalculation(input);
-      console.log('✅ Calculation triggered');
-
-      // Get benchmark comparison if available
-      // Note: result will be available in the next render cycle
-      if (provinces.length > 0) {
-        // Benchmark comparison will be done when result is available
-      }
     } catch (err) {
-      console.error('❌ Calculation failed:', err);
+      console.error('Calculation failed:', err);
     }
   };
 
@@ -60,19 +115,18 @@ function App() {
           .catch(err => console.warn('Benchmark comparison failed:', err));
       }
     }
-  }, [result, provinces, benchmarkComparison]);
+  }, [result, provinces, benchmarkComparison, benchmarkEngine]);
 
   // Handle form submission
   const handleSubmit = async (input: ProjectInput) => {
-    console.log('Project saved:', input);
-    // TODO: Implement project save logic
+    console.log('Demo project saved:', input);
+    // In demo mode, just log the data
   };
 
   // Language toggle
   const toggleLanguage = () => {
     const newLang = language === 'zh' ? 'en' : 'zh';
     setLanguage(newLang);
-    i18n.changeLanguage(newLang);
   };
 
   return (
@@ -90,20 +144,41 @@ function App() {
               </p>
             </div>
 
-            {/* Language Toggle */}
-            <button
-              onClick={toggleLanguage}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+            {/* Sign Up Button */}
+            <a
+              href="/register"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
             >
-              {language === 'zh' ? '中文' : 'English'}
-            </button>
+              {t('auth.signUp', { defaultValue: 'Sign Up' })}
+            </a>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Calculator Form - Full Width for 5-Step Workflow */}
+        {/* Demo Notice */}
+        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-start">
+            <svg className="w-5 h-5 text-blue-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-blue-900 mb-1">
+                {t('demo.title', { defaultValue: 'Demo Mode' })}
+              </h3>
+              <p className="text-sm text-blue-800">
+                {t('demo.description', { defaultValue: 'Sign up to save your projects and access them from any device.' })}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Calculator Form */}
         <PageErrorBoundary pageName="CalculatorForm">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <CalculatorForm
@@ -165,6 +240,67 @@ function App() {
         </div>
       </footer>
     </div>
+  );
+};
+
+/**
+ * Main App Component with Routing
+ */
+function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Public Routes */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <AuthPage mode="login" />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <AuthPage mode="register" />
+            </PublicRoute>
+          }
+        />
+
+        {/* Demo Route (unauthenticated) */}
+        <Route path="/demo" element={<DemoCalculator />} />
+
+        {/* Protected Routes */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <ProjectListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/project/:id"
+          element={
+            <ProtectedRoute>
+              <ProjectDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Default redirect */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

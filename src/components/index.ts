@@ -44,3 +44,32 @@ export {
   QuickPrompts,
   ThinkingIndicator,
 } from './AIChat';
+
+// Auth & Cloud Components
+export { AuthPage } from './AuthPage';
+export { ProjectListPage } from './ProjectListPage';
+export { ProjectDetailPage } from './ProjectDetailPage';
+export { ProjectCard, ProjectListItem } from './ProjectCard';
+export { FilterBar } from './FilterBar';
+export { SettingsPage } from './SettingsPage';
+
+// Enhanced Features
+export { StatisticsDashboard } from './StatisticsDashboard';
+export { ImportExportDialog } from './ImportExportDialog';
+export { TemplateSelectorDialog } from './TemplateSelectorDialog';
+
+// UI Components
+export {
+  LoadingSpinner,
+  FullPageLoading,
+  InlineLoadingSpinner,
+} from './ui';
+export {
+  EmptyState,
+  NoProjectsEmptyState,
+  NoSearchResultsEmptyState,
+  NoConnectionEmptyState,
+} from './ui';
+export { ConfirmDialog, useConfirmDialog } from './ui';
+export { ToastProvider, useToast } from './ui';
+export type { ToastVariant, Toast } from './ui';
