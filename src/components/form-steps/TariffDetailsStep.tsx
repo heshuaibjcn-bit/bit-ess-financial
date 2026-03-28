@@ -16,6 +16,7 @@ import { type HourlyPrice, PROVINCE_NAMES, type ElectricityBillComponents } from
 import { getTariffService } from '../../services/tariffDataService';
 import TariffUpdateButton from '../TariffUpdateButton';
 import { type TariffType } from '../../domain/schemas/ProjectSchema';
+import { AIAssistant } from './AIAssistant';
 
 interface BillComponentsDisplayProps {
   billComponents: ElectricityBillComponents;
@@ -442,6 +443,17 @@ export const TariffDetailsStep: React.FC = () => {
       <input type="hidden" {...register('tariffDetail.flatPrice')} />
       <input type="hidden" {...register('tariffDetail.hourlyPrices')} />
     </div>
+
+    {/* AI Assistant */}
+    <AIAssistant
+      context={{
+        province: province as any,
+        voltage: voltageLevel,
+        monthlyUsage: watch('facilityInfo.monthlyUsage'),
+        peakLoad: watch('facilityInfo.peakLoad')
+      }}
+    />
+  </>
   );
 };
 
