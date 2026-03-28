@@ -126,7 +126,7 @@ const BillComponentsDisplay: React.FC<BillComponentsDisplayProps> = ({
   );
 };
 
-const TARIFF_TYPE_OPTIONS: Array<{ value: TariffType | 'agricultural' | 'residential'; label: string; description: string }> = [
+const TARIFF_TYPE_OPTIONS: Array<{ value: TariffType; label: string; description: string }> = [
   {
     value: 'industrial',
     label: '一般工商业',
@@ -141,16 +141,6 @@ const TARIFF_TYPE_OPTIONS: Array<{ value: TariffType | 'agricultural' | 'residen
     value: 'commercial',
     label: '商业',
     description: '商业用电'
-  },
-  {
-    value: 'agricultural',
-    label: '农业',
-    description: '农业生产用电'
-  },
-  {
-    value: 'residential',
-    label: '居民',
-    description: '居民生活用电'
   }
 ];
 
@@ -229,11 +219,8 @@ export const TariffDetailsStep: React.FC = () => {
   /**
    * 处理电价类型选择
    */
-  const handleTariffTypeChange = (value: TariffType | 'agricultural' | 'residential') => {
-    // Only update the form if the value is a valid TariffType
-    if (value === 'industrial' || value === 'commercial' || value === 'large_industrial') {
-      setValue('tariffDetail.tariffType', value);
-    }
+  const handleTariffTypeChange = (value: TariffType) => {
+    setValue('tariffDetail.tariffType', value);
     setIsUserChanged(true);
   };
 
