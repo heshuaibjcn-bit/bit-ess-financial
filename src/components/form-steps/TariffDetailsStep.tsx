@@ -16,7 +16,7 @@ import { type HourlyPrice, PROVINCE_NAMES, type ElectricityBillComponents } from
 import { getTariffService } from '../../services/tariffDataService';
 import TariffUpdateButton from '../TariffUpdateButton';
 import { type TariffType } from '../../domain/schemas/ProjectSchema';
-import { AIAssistant } from './AIAssistant';
+import { AIAssistant } from '../AIAssistant';
 
 interface BillComponentsDisplayProps {
   billComponents: ElectricityBillComponents;
@@ -233,6 +233,7 @@ export const TariffDetailsStep: React.FC = () => {
   } : null;
 
   return (
+    <>
     <div className="space-y-6">
       {/* Header with parameters and update button */}
       <div className="flex items-center justify-between">
@@ -453,7 +454,7 @@ export const TariffDetailsStep: React.FC = () => {
         peakLoad: watch('facilityInfo.peakLoad')
       }}
     />
-  </>
+    </>
   );
 };
 
