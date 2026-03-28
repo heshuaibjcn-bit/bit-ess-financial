@@ -122,7 +122,7 @@ export class ReportGenerationAgent extends NanoAgent {
       name: 'ReportGenerationAgent',
       description: 'Integrated report generation from all agent outputs',
       version: '1.0.0',
-      model: 'claude-3-haiku-20240307',
+      model: 'glm-5-turbo',
       maxTokens: 8192,
       temperature: 0.4,
       systemPrompt: `You are a Report Generation Specialist for energy storage project assessments. Your role is to:

@@ -7,9 +7,62 @@
  * - Secure (API keys managed locally)
  * - Modular (each agent independent)
  * - Transparent (show agent reasoning)
+ *
+ * Now powered by GLM-5-Turbo (智谱AI)
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+/**
+ * GLM Client for智谱AI API
+ */
+class GLMClient {
+  private apiKey: string;
+  private baseURL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
+  }
+
+  async messagesCreate(params: {
+    model: string;
+    max_tokens: number;
+    system: string;
+    messages: Array<{ role: string; content: string }>;
+  }): Promise<{ content: Array<{ type: string; text: string }> }> {
+    const response = await fetch(this.baseURL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: params.model,
+        messages: [
+          { role: 'system', content: params.system },
+          ...params.messages,
+        ],
+        max_tokens: params.max_tokens,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`GLM API error: ${response.status} - ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: data.choices[0]?.message?.content || '',
+        },
+      ],
+    };
+  }
+}
+
 
 export interface AgentMessage {
   role: 'user' | 'assistant' | 'system';
@@ -52,7 +105,7 @@ export interface AgentCapability {
  * Base NanoAgent Class
  */
 export class NanoAgent {
-  protected client: Anthropic | null = null;
+  protected client: GLMClient | null = null;
   protected config: AgentConfig;
 
   constructor(config: AgentConfig) {
@@ -61,12 +114,12 @@ export class NanoAgent {
   }
 
   /**
-   * Initialize Anthropic client
+   * Initialize GLM client
    */
   protected initializeClient(): void {
     const apiKey = this.getApiKey();
     if (apiKey) {
-      this.client = new Anthropic({ apiKey });
+      this.client = new GLMClient(apiKey);
     }
   }
 
@@ -74,15 +127,23 @@ export class NanoAgent {
    * Get API key from localStorage or environment
    */
   protected getApiKey(): string | undefined {
-    // Try localStorage first
-    const userKey = localStorage.getItem('anthropic_api_key');
+    // Try localStorage first (now for GLM API key)
+    const userKey = localStorage.getItem('glm_api_key');
     if (userKey) {
       return userKey;
     }
 
+    // Also check for old anthropic key for migration
+    const oldKey = localStorage.getItem('anthropic_api_key');
+    if (oldKey) {
+      // Migrate to new key name
+      localStorage.setItem('glm_api_key', oldKey);
+      return oldKey;
+    }
+
     // Try environment variable
-    if (import.meta.env.VITE_ANTHROPIC_API_KEY) {
-      return import.meta.env.VITE_ANTHROPIC_API_KEY;
+    if (import.meta.env.VITE_GLM_API_KEY) {
+      return import.meta.env.VITE_GLM_API_KEY;
     }
 
     return undefined;
@@ -113,10 +174,9 @@ export class NanoAgent {
       throw new Error('Agent not available - please configure API key');
     }
 
-    const response = await this.client.messages.create({
+    const response = await this.client.messagesCreate({
       model: this.config.model,
       max_tokens: this.config.maxTokens,
-      temperature: this.config.temperature,
       system: this.config.systemPrompt,
       messages: [{ role: 'user', content: prompt }],
     });

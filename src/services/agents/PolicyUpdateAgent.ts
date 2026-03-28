@@ -45,7 +45,7 @@ export class PolicyUpdateAgent extends NanoAgent {
       name: 'PolicyUpdateAgent',
       description: 'Automated policy monitoring and update agent',
       version: '1.0.0',
-      model: 'claude-3-haiku-20240307',
+      model: 'glm-5-turbo',
       maxTokens: 4096,
       temperature: 0.3,
       systemPrompt: `You are a Policy Update Specialist for energy storage policies. Your role is to:

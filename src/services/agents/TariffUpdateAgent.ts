@@ -51,7 +51,7 @@ export class TariffUpdateAgent extends NanoAgent {
       name: 'TariffUpdateAgent',
       description: 'Automated tariff monitoring and update agent',
       version: '1.0.0',
-      model: 'claude-3-haiku-20240307',
+      model: 'glm-5-turbo',
       maxTokens: 4096,
       temperature: 0.3,
       systemPrompt: `You are a Tariff Update Specialist for Chinese electricity tariffs. Your role is to:

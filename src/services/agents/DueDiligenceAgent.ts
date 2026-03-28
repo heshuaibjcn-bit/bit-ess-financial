@@ -72,7 +72,7 @@ export class DueDiligenceAgent extends NanoAgent {
       name: 'DueDiligenceAgent',
       description: 'Automated company due diligence and background research agent',
       version: '1.0.0',
-      model: 'claude-3-haiku-20240307',
+      model: 'glm-5-turbo',
       maxTokens: 4096,
       temperature: 0.3,
       systemPrompt: `You are a Due Diligence Specialist for Chinese companies. Your role is to:

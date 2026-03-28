@@ -68,7 +68,7 @@ export class SentimentAnalysisAgent extends NanoAgent {
       name: 'SentimentAnalysisAgent',
       description: 'Automated company sentiment and public opinion monitoring agent',
       version: '1.0.0',
-      model: 'claude-3-haiku-20240307',
+      model: 'glm-5-turbo',
       maxTokens: 4096,
       temperature: 0.3,
       systemPrompt: `You are a Sentiment Analysis Specialist for Chinese companies. Your role is to:

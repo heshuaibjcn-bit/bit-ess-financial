@@ -62,7 +62,7 @@ export class TechnicalFeasibilityAgent extends NanoAgent {
       name: 'TechnicalFeasibilityAgent',
       description: 'Technical feasibility assessment for energy storage projects',
       version: '1.0.0',
-      model: 'claude-3-haiku-20240307',
+      model: 'glm-5-turbo',
       maxTokens: 4096,
       temperature: 0.3,
       systemPrompt: `You are a Technical Feasibility Specialist for energy storage projects. Your role is to:

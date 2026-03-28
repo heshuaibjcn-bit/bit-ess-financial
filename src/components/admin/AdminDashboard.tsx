@@ -103,7 +103,7 @@ export const AdminDashboard: React.FC = () => {
   useEffect(() => {
     // Check if API key is configured
     const checkApiKey = () => {
-      const key = localStorage.getItem('anthropic_api_key');
+      const key = localStorage.getItem('glm_api_key');
       setApiConfigured(!!key);
     };
     checkApiKey();
@@ -123,7 +123,7 @@ export const AdminDashboard: React.FC = () => {
 
   const handleRunAgent = async (agentId: AgentType) => {
     if (!apiConfigured) {
-      alert('请先配置Anthropic API密钥');
+      alert('请先配置智谱GLM API密钥');
       return;
     }
 
@@ -278,9 +278,9 @@ export const AdminDashboard: React.FC = () => {
   };
 
   const handleConfigureApiKey = () => {
-    const key = prompt('请输入Anthropic API密钥:');
+    const key = prompt('请输入智谱AI GLM API密钥:');
     if (key) {
-      localStorage.setItem('anthropic_api_key', key);
+      localStorage.setItem('glm_api_key', key);
       setApiConfigured(true);
     }
   };
@@ -294,7 +294,7 @@ export const AdminDashboard: React.FC = () => {
             <span className="text-2xl">{apiConfigured ? '✅' : '⚠️'}</span>
             <div>
               <h3 className={`font-medium ${apiConfigured ? 'text-green-900' : 'text-yellow-900'}`}>
-                API密钥状态
+                智谱GLM API密钥状态
               </h3>
               <p className={`text-sm ${apiConfigured ? 'text-green-700' : 'text-yellow-700'}`}>
                 {apiConfigured ? '已配置' : '未配置'}
@@ -524,13 +524,13 @@ export const AdminDashboard: React.FC = () => {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Anthropic API密钥
+              智谱GLM API密钥
             </label>
             <div className="flex space-x-3">
               <input
                 type="password"
-                defaultValue={localStorage.getItem('anthropic_api_key') || ''}
-                placeholder="sk-ant-..."
+                defaultValue={localStorage.getItem('glm_api_key') || ''}
+                placeholder="输入智谱AI的API密钥"
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 readOnly
               />

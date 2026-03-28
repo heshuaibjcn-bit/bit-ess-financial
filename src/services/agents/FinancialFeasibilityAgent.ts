@@ -107,7 +107,7 @@ export class FinancialFeasibilityAgent extends NanoAgent {
       name: 'FinancialFeasibilityAgent',
       description: 'Financial feasibility and investment analysis agent',
       version: '1.0.0',
-      model: 'claude-3-haiku-20240307',
+      model: 'glm-5-turbo',
       maxTokens: 4096,
       temperature: 0.3,
       systemPrompt: `You are a Financial Feasibility Specialist for energy storage projects. Your role is to:
