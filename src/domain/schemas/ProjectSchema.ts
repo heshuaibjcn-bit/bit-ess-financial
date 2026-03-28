@@ -13,6 +13,216 @@ export const PROVINCES = [
 
 export type Province = (typeof PROVINCES)[number];
 
+// ============================================================================
+// NEW BUSINESS-DRIVEN SCHEMAS
+// ============================================================================
+
+/**
+ * Collaboration model types
+ */
+export const COLLABORATION_MODELS = ['investor_owned', 'joint_venture', 'emc'] as const;
+export type CollaborationModel = (typeof COLLABORATION_MODELS)[number];
+
+/**
+ * Company scale types
+ */
+export const COMPANY_SCALES = ['small', 'medium', 'large'] as const;
+export type CompanyScale = (typeof COMPANY_SCALES)[number];
+
+/**
+ * Credit rating types
+ */
+export const CREDIT_RATINGS = ['AAA', 'AA', 'A', 'BBB', 'unknown'] as const;
+export type CreditRating = (typeof CREDIT_RATINGS)[number];
+
+/**
+ * Payment history types
+ */
+export const PAYMENT_HISTORIES = ['excellent', 'good', 'fair', 'poor'] as const;
+export type PaymentHistory = (typeof PAYMENT_HISTORIES)[number];
+
+/**
+ * Voltage level types
+ */
+export const VOLTAGE_LEVELS = ['0.4kV', '10kV', '35kV'] as const;
+export type VoltageLevel = (typeof VOLTAGE_LEVELS)[number];
+
+/**
+ * Roof type types
+ */
+export const ROOF_TYPES = ['flat', 'sloped', 'ground'] as const;
+export type RoofType = (typeof ROOF_TYPES)[number];
+
+/**
+ * Tariff type types
+ */
+export const TARIFF_TYPES = ['industrial', 'commercial', 'large_industrial'] as const;
+export type TariffType = (typeof TARIFF_TYPES)[number];
+
+/**
+ * Price period types
+ */
+export const PRICE_PERIODS = ['peak', 'valley', 'flat'] as const;
+export type PricePeriod = (typeof PRICE_PERIODS)[number];
+
+/**
+ * Charge strategy types
+ */
+export const CHARGE_STRATEGIES = ['arbitrage_only', 'peak_shaving', 'mixed'] as const;
+export type ChargeStrategy = (typeof CHARGE_STRATEGIES)[number];
+
+/**
+ * Optimization target types
+ */
+export const OPTIMIZATION_TARGETS = ['cost', 'revenue', 'balanced'] as const;
+export type OptimizationTarget = (typeof OPTIMIZATION_TARGETS)[number];
+
+/**
+ * Owner Information Schema (业主信息)
+ */
+export const OwnerInfoSchema = z.object({
+  // 业主基本信息
+  companyName: z.string()
+    .min(1, '请输入公司名称')
+    .max(200, '公司名称过长'),
+  industry: z.string()
+    .min(1, '请输入所属行业')
+    .max(100, '行业描述过长'),
+  contactPerson: z.string()
+    .min(1, '请输入联系人姓名')
+    .max(50, '联系人姓名过长'),
+  contactPhone: z.string()
+    .regex(/^1[3-9]\d{9}$/, '请输入有效的手机号码'),
+
+  // 背调信息
+  companyScale: z.enum(COMPANY_SCALES),
+  creditRating: z.enum(CREDIT_RATINGS),
+  paymentHistory: z.enum(PAYMENT_HISTORIES),
+
+  // 合作模式
+  collaborationModel: z.enum(COLLABORATION_MODELS),
+  revenueShareRatio: z.number()
+    .min(0, '分成比例不能小于0')
+    .max(100, '分成比例不能大于100')
+    .optional(), // 合资模式时的分成比例
+  contractDuration: z.number()
+    .int('合作年限必须是整数')
+    .min(1, '合作年限至少1年')
+    .max(30, '合作年限不超过30年'),
+});
+
+export type OwnerInfo = z.infer<typeof OwnerInfoSchema>;
+
+/**
+ * Facility Information Schema (电力设施信息)
+ */
+export const FacilityInfoSchema = z.object({
+  // 变压器和电力设施
+  transformerCapacity: z.number()
+    .positive('变压器容量必须大于0')
+    .max(100000, '变压器容量过大'), // kVA
+  voltageLevel: z.enum(VOLTAGE_LEVELS),
+  avgMonthlyLoad: z.number()
+    .nonnegative('平均月用电量不能为负'), // kWh
+  peakLoad: z.number()
+    .nonnegative('峰值负荷不能为负'), // kW
+
+  // 场地信息
+  availableArea: z.number()
+    .nonnegative('可用面积不能为负'), // 平方米
+  roofType: z.enum(ROOF_TYPES),
+  loadBearingCapacity: z.number()
+    .positive('承重能力必须大于0')
+    .optional(), // kg/m²
+  needsExpansion: z.boolean()
+    .default(false),
+
+  // 时间计划
+  commissionDate: z.string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, '请使用YYYY-MM-DD格式'),
+});
+
+export type FacilityInfo = z.infer<typeof FacilityInfoSchema>;
+
+/**
+ * Hourly Price Schema
+ */
+export const HourlyPriceSchema = z.object({
+  hour: z.number()
+    .int('小时必须是整数')
+    .min(0, '小时必须在0-23之间')
+    .max(23, '小时必须在0-23之间'),
+  price: z.number()
+    .nonnegative('电价不能为负'),
+  period: z.enum(PRICE_PERIODS),
+});
+
+export type HourlyPrice = z.infer<typeof HourlyPriceSchema>;
+
+/**
+ * Seasonal Adjustment Schema
+ */
+export const SeasonalAdjustmentSchema = z.object({
+  season: z.string()
+    .min(1, '季节名称不能为空'),
+  adjustmentFactor: z.number()
+    .min(-0.5, '调整系数不能小于-0.5')
+    .max(0.5, '调整系数不能大于0.5'),
+});
+
+export type SeasonalAdjustment = z.infer<typeof SeasonalAdjustmentSchema>;
+
+/**
+ * Tariff Detail Schema (电价详细信息)
+ */
+export const TariffDetailSchema = z.object({
+  // 基础电价信息
+  tariffType: z.enum(TARIFF_TYPES),
+  peakPrice: z.number()
+    .nonnegative('峰时电价不能为负'),
+  valleyPrice: z.number()
+    .nonnegative('谷时电价不能为负'),
+  flatPrice: z.number()
+    .nonnegative('平时电价不能为负'),
+
+  // 24小时电价分布
+  hourlyPrices: z.array(HourlyPriceSchema)
+    .min(24, '需要完整的24小时电价数据')
+    .max(24, '只需要24小时电价数据'),
+
+  // 季节性调整（可选）
+  seasonalAdjustments: z.array(SeasonalAdjustmentSchema)
+    .optional(),
+});
+
+export type TariffDetail = z.infer<typeof TariffDetailSchema>;
+
+/**
+ * Technical Proposal Schema (技术方案)
+ */
+export const TechnicalProposalSchema = z.object({
+  // 推荐的系统配置
+  recommendedCapacity: z.number()
+    .positive('推荐容量必须大于0'), // MWh
+  recommendedPower: z.number()
+    .positive('推荐功率必须大于0'), // MW
+  capacityPowerRatio: z.number()
+    .positive('时长比例必须大于0'),
+
+  // 充放电策略
+  chargeStrategy: z.enum(CHARGE_STRATEGIES),
+  cycleLife: z.number()
+    .int('循环寿命必须是整数')
+    .positive('循环寿命必须大于0'),
+  expectedThroughput: z.number()
+    .nonnegative('预期吞吐量不能为负'),
+
+  // 优化目标
+  optimizedFor: z.enum(OPTIMIZATION_TARGETS),
+});
+
+export type TechnicalProposal = z.infer<typeof TechnicalProposalSchema>;
+
 /**
  * Technology types for energy storage systems
  */
@@ -261,8 +471,10 @@ export type OperatingCosts = z.infer<typeof OperatingCostsSchema>;
 
 /**
  * Complete project input schema
+ * Updated to support business-driven workflow
  */
 export const ProjectInputSchema = z.object({
+  // Existing fields (for backward compatibility)
   province: z.enum(PROVINCES, {
     errorMap: () => ({ message: 'Invalid province. Must be one of the 31 supported regions.' }),
   }),
@@ -278,6 +490,12 @@ export const ProjectInputSchema = z.object({
   description: z.string()
     .max(1000, 'Description is too long')
     .optional(),
+
+  // NEW: Business-driven fields
+  ownerInfo: OwnerInfoSchema.optional(),
+  facilityInfo: FacilityInfoSchema.optional(),
+  tariffDetail: TariffDetailSchema.optional(),
+  technicalProposal: TechnicalProposalSchema.optional(),
 });
 
 export type ProjectInput = z.infer<typeof ProjectInputSchema>;
@@ -307,7 +525,17 @@ export type ScenarioInput = z.infer<typeof ScenarioInputSchema>;
  */
 export const ProjectInputSchemaRefined = ProjectInputSchema.refine((data) => {
   // Calculate total installed cost per Wh
-  const totalCostPerWh = Object.values(data.costs).reduce((sum, val) => sum + val, 0);
+  const costs = data.costs;
+  const totalCostPerWh =
+    costs.batteryCostPerKwh +
+    costs.pcsCostPerKw +
+    costs.emsCost +
+    costs.installationCostPerKw +
+    costs.gridConnectionCost +
+    costs.landCost +
+    costs.developmentCost +
+    costs.permittingCost +
+    (costs.contingencyPercent * 1000); // Approximate
 
   // Check if total cost is within reasonable bounds (0.5 - 5 ¥/Wh)
   if (totalCostPerWh < 0.3) {

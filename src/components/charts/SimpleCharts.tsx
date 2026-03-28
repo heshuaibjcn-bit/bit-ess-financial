@@ -270,4 +270,5 @@ export const CashFlowLineChart: React.FC<SimpleChartsProps> = ({
   );
 };
 
-export default SimpleCharts;
+// Remove incorrect default export - components are individually exported
+

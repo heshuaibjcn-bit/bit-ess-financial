@@ -18,11 +18,17 @@ import { useUIStore } from '../stores/uiStore';
 import { QuickFillButton } from './QuickFillButton';
 
 // Import step components
-import { BasicInfoStep } from './form-steps';
-import { CostsStep } from './form-steps';
-import { OperationsStep } from './form-steps';
-import { OperatingCostsStep } from './form-steps';
-import { FinancingStep } from './form-steps';
+import { BasicInfoStep } from './form-steps/BasicInfoStep';
+import { CostsStep } from './form-steps/CostsStep';
+import { OperationsStep } from './form-steps/OperationsStep';
+import { OperatingCostsStep } from './form-steps/OperatingCostsStep';
+import { FinancingStep } from './form-steps/FinancingStep';
+// Import new business-driven workflow steps directly
+import { OwnerInfoStep } from './form-steps/OwnerInfoStep';
+import { TariffDetailsStep } from './form-steps/TariffDetailsStep';
+import { TechnicalAssessmentStep } from './form-steps/TechnicalAssessmentStep';
+import { FinancialModelStep } from './form-steps/FinancialModelStep';
+import { ReportOutputStep } from './form-steps/ReportOutputStep';
 
 // Form step types
 type FormStep = 0 | 1 | 2 | 3 | 4;
@@ -106,6 +112,49 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
         equityRatio: 1.0, // 100% self-funded by default
         taxHolidayYears: 6, // 6 years VAT holiday
       },
+      // NEW: Default values for business-driven fields
+      ownerInfo: {
+        companyName: '',
+        industry: '',
+        contactPerson: '',
+        contactPhone: '',
+        companyScale: 'medium',
+        creditRating: 'AA',
+        paymentHistory: 'good',
+        collaborationModel: 'joint_venture',
+        contractDuration: 10,
+        revenueShareRatio: 50,
+      },
+      facilityInfo: {
+        transformerCapacity: 1000,
+        voltageLevel: '0.4kV',
+        avgMonthlyLoad: 50000,
+        peakLoad: 500,
+        availableArea: 500,
+        roofType: 'flat',
+        needsExpansion: false,
+        commissionDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 90 days from now
+      },
+      tariffDetail: {
+        tariffType: 'industrial',
+        peakPrice: 1.0,
+        valleyPrice: 0.4,
+        flatPrice: 0.6,
+        hourlyPrices: Array.from({ length: 24 }, (_, hour) => ({
+          hour,
+          price: hour >= 8 && hour <= 11 ? 1.0 : hour >= 23 || hour <= 6 ? 0.4 : 0.6,
+          period: hour >= 8 && hour <= 11 ? ('peak' as const) : hour >= 23 || hour <= 6 ? ('valley' as const) : ('flat' as const),
+        })),
+      },
+      technicalProposal: {
+        recommendedCapacity: 2.0,
+        recommendedPower: 1.0,
+        capacityPowerRatio: 2.0,
+        chargeStrategy: 'arbitrage_only',
+        cycleLife: 6000,
+        expectedThroughput: 10800,
+        optimizedFor: 'balanced',
+      },
     },
     mode: 'onChange',
   });
@@ -134,11 +183,42 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
     return () => clearTimeout(timeoutId);
   }, [formValues, trigger, onCalculate]);
 
-  // Navigation handlers
+  // Navigation handlers - Validate current step fields only
   const goToNextStep = useCallback(async () => {
-    const isValid = await trigger();
-    if (isValid && currentStep < totalSteps - 1) {
-      setCurrentStep((currentStep + 1) as FormStep);
+    // Define required fields for each step
+    const stepRequiredFields = {
+      0: ['ownerInfo.companyName', 'ownerInfo.industry', 'ownerInfo.contactPerson', 'ownerInfo.contactPhone', 'ownerInfo.collaborationModel', 'ownerInfo.contractDuration', 'facilityInfo.transformerCapacity', 'facilityInfo.voltageLevel', 'facilityInfo.availableArea', 'facilityInfo.roofType', 'facilityInfo.commissionDate'],
+      1: ['tariffDetail.tariffType', 'tariffDetail.peakPrice', 'tariffDetail.valleyPrice', 'tariffDetail.flatPrice', 'tariffDetail.hourlyPrices'],
+      2: [], // Technical assessment - auto-generated, no required input
+      3: [], // Financial model - auto-calculated, no required input
+      4: [], // Report output - no input required
+    };
+
+    const requiredFields = stepRequiredFields[currentStep as keyof typeof stepRequiredFields] || [];
+
+    if (requiredFields.length > 0) {
+      // Try to validate each required field individually
+      let allValid = true;
+      for (const field of requiredFields) {
+        const fieldValid = await trigger(field as any);
+        if (!fieldValid) {
+          console.log(`❌ Field ${field} validation failed`);
+          allValid = false;
+        }
+      }
+
+      if (allValid && currentStep < totalSteps - 1) {
+        setCurrentStep((currentStep + 1) as FormStep);
+        console.log(`✅ Moved to step ${currentStep + 1}`);
+      } else {
+        console.error('❌ Navigation blocked - validation failed for step', currentStep);
+      }
+    } else {
+      // No validation required - just navigate
+      if (currentStep < totalSteps - 1) {
+        setCurrentStep((currentStep + 1) as FormStep);
+        console.log(`✅ Moved to step ${currentStep + 1} (no validation)`);
+      }
     }
   }, [currentStep, totalSteps, trigger, setCurrentStep]);
 
@@ -159,27 +239,27 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
     }
   }, [onSubmit]);
 
-  // Step configuration
+  // Step configuration - NEW: Business-driven 5-step workflow
   const steps = [
     {
-      title: t('calculator.steps.basic'),
-      component: BasicInfoStep,
+      title: t('calculator.steps.ownerInfo'),
+      component: OwnerInfoStep,
     },
     {
-      title: t('calculator.steps.costs'),
-      component: CostsStep,
+      title: t('calculator.steps.tariffDetails'),
+      component: TariffDetailsStep,
     },
     {
-      title: t('calculator.steps.operations'),
-      component: OperationsStep,
+      title: t('calculator.steps.technicalAssessment'),
+      component: TechnicalAssessmentStep,
     },
     {
-      title: '运营成本',
-      component: OperatingCostsStep,
+      title: t('calculator.steps.financialModel'),
+      component: FinancialModelStep,
     },
     {
-      title: t('calculator.steps.financing'),
-      component: FinancingStep,
+      title: t('calculator.steps.reportOutput'),
+      component: ReportOutputStep,
     },
   ];
 

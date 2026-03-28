@@ -295,8 +295,8 @@ export const useStepLabels = () => {
   const language = useUIStore((state) => state.language);
 
   const labels = {
-    zh: ['基本信息', '成本配置', '运行参数', '运营成本', '融资方案'],
-    en: ['Basic Info', 'Cost Structure', 'Operating Params', 'Operating Costs', 'Financing'],
+    zh: ['业主信息', '电价详情', '技术评估', '财务测算', '整体报告'],
+    en: ['Owner Info', 'Tariff Details', 'Technical Assessment', 'Financial Model', 'Report Output'],
   };
 
   return labels[language];
@@ -310,18 +310,18 @@ export const useStepDescriptions = () => {
 
   const descriptions = {
     zh: [
-      '选择省份并配置系统规模（容量/功率）',
-      '输入电池、PCS、BMS等设备成本',
-      '设置系统效率、DOD、日循环次数等参数',
-      '输入真实的企业运营成本（人员、办公、维护、保险、税费）',
-      '配置贷款比例、利率和期限',
+      '收集业主背景、合作模式、电力设施情况',
+      '展示当地分时电价政策，24小时分布图',
+      '基于前两步数据，智能推荐系统配置',
+      '基于合作模式和技术方案计算财务指标',
+      '生成专业投资评估报告',
     ],
     en: [
-      'Select province and configure system size (capacity/power)',
-      'Input battery, PCS, BMS and other equipment costs',
-      'Set system efficiency, DOD, daily cycles and other parameters',
-      'Input real business operating costs (personnel, office, maintenance, insurance, taxes)',
-      'Configure loan ratio, interest rate and term',
+      'Collect owner background, collaboration model, and facility information',
+      'Display local TOU tariff policy and 24-hour distribution chart',
+      'AI-recommended system configuration based on previous data',
+      'Calculate financial metrics based on collaboration model and technical proposal',
+      'Generate professional investment assessment report',
     ],
   };
 

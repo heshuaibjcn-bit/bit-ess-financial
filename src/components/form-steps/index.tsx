@@ -4,8 +4,17 @@
  * Exports all step components for the multi-step calculator form
  */
 
+// Legacy steps (for backward compatibility)
 export { BasicInfoStep } from './BasicInfoStep';
 export { CostsStep } from './CostsStep';
 export { OperationsStep } from './OperationsStep';
 export { OperatingCostsStep } from './OperatingCostsStep';
 export { FinancingStep } from './FinancingStep';
+
+// New business-driven workflow steps
+export { OwnerInfoStep } from './OwnerInfoStep';
+export { TariffDetailsStep } from './TariffDetailsStep';
+export { TechnicalAssessmentStep } from './TechnicalAssessmentStep';
+export { FinancialModelStep } from './FinancialModelStep';
+export { ReportOutputStep } from './ReportOutputStep';
+// Force rebuild 2026年 3月28日 星期六 01时03分42秒 CST

@@ -14,7 +14,7 @@ import { EnhancedCashFlowCalculator } from './EnhancedCashFlowCalculator';
 import { FinancialCalculator } from './FinancialCalculator';
 import { cacheService } from './CacheService';
 import type { ProvinceData } from '../schemas/ProvinceSchema';
-import type { ProjectInput } from '../schemas/ProjectSchema';
+import type { ProjectInput, OwnerInfo, CollaborationModel } from '../schemas/ProjectSchema';
 import type { CalculationResult } from '../models/Project';
 
 /**
@@ -24,6 +24,20 @@ export interface CalculationOptions {
   discountRate?: number; // Default: 8%
   projectLifetime?: number; // Default: 10 years
   validateInputs?: boolean; // Default: true
+}
+
+/**
+ * Revenue share breakdown for collaboration models
+ */
+export interface RevenueShareBreakdown {
+  investorAnnualRevenue: number; // Investor's annual revenue after split
+  ownerAnnualRevenue: number; // Owner's annual revenue after split
+  investorTotalRevenue: number; // Total investor revenue over project lifetime
+  ownerTotalRevenue: number; // Total owner revenue over project lifetime
+  investorIrr: number; // Investor IRR
+  ownerIrr: number; // Owner IRR (if applicable)
+  splitRatio: number; // Revenue split ratio (0-100 for investor)
+  collaborationModel: CollaborationModel;
 }
 
 /**
@@ -41,6 +55,8 @@ export interface EngineResult extends CalculationResult {
     lcoc: number;
     profitMargin: number;
   };
+  // NEW: Revenue sharing breakdown
+  revenueShare?: RevenueShareBreakdown;
 }
 
 /**
@@ -166,6 +182,42 @@ export class CalculationEngine {
           lcoc: financialMetrics.lcoc,
           profitMargin: financialMetrics.profitMargin,
         },
+        // NEW: Calculate revenue sharing if owner info is available
+        revenueShare: this.calculateRevenueShare(
+          {
+            projectId: 'temp',
+            irr: financialMetrics.irr ?? 0,
+            npv: financialMetrics.npv,
+            paybackPeriod: cashFlowResult.paybackPeriod,
+            annualCashFlows: cashFlowResult.annualCashFlows,
+            revenueBreakdown: {
+              peakValleyArbitrage: revenueResult.firstYearBreakdown.peakValleyArbitrage,
+              capacityCompensation: revenueResult.firstYearBreakdown.capacityCompensation,
+              demandResponse: revenueResult.firstYearBreakdown.demandResponse,
+              auxiliaryServices: revenueResult.firstYearBreakdown.auxiliaryServices,
+            },
+            costBreakdown: {
+              initialInvestment: cashFlowResult.totalInvestment,
+              annualOpeex: cashFlowResult.totalOpex / Math.max(1, projectLifetime - 1),
+              annualFinancing: cashFlowResult.totalFinancing / Math.max(1, projectLifetime - 1),
+            },
+            totalInvestment: cashFlowResult.totalInvestment,
+            levelizedCost: financialMetrics.lcoc,
+            capacityFactor: (input.operatingParams.cyclesPerDay * 2 * 365) / (8760),
+            calculatedAt: new Date(),
+            calculationVersion: '1.0.0',
+            validation,
+            metrics: {
+              irr: financialMetrics.irr,
+              npv: financialMetrics.npv,
+              roi: financialMetrics.roi,
+              lcoc: financialMetrics.lcoc,
+              profitMargin: financialMetrics.profitMargin,
+            },
+          },
+          input.ownerInfo,
+          projectLifetime
+        ),
       };
 
       // Cache the result with province for invalidation
@@ -389,6 +441,76 @@ export class CalculationEngine {
       rating: 5,
       label: '优秀 (Excellent)',
       description: '内部收益率超过15%，投资回报优秀',
+    };
+  }
+
+  /**
+   * Calculate revenue share breakdown for collaboration models
+   *
+   * @param result - Calculation result
+   * @param ownerInfo - Owner information
+   * @param projectLifetime - Project lifetime in years
+   * @returns Revenue share breakdown
+   */
+  calculateRevenueShare(
+    result: EngineResult,
+    ownerInfo: OwnerInfo | undefined,
+    projectLifetime: number = 10
+  ): RevenueShareBreakdown | undefined {
+    if (!ownerInfo) {
+      return undefined;
+    }
+
+    const collaborationModel = ownerInfo.collaborationModel;
+    const annualProfit = result.annualCashFlows[0] || 0; // Use first year cash flow as proxy
+
+    let investorAnnualRevenue = 0;
+    let ownerAnnualRevenue = 0;
+    let splitRatio = 0;
+
+    switch (collaborationModel) {
+      case 'investor_owned':
+        // Investor owns 100% of revenue
+        investorAnnualRevenue = annualProfit;
+        ownerAnnualRevenue = 0;
+        splitRatio = 100;
+        break;
+
+      case 'joint_venture':
+        // Revenue split based on agreed ratio
+        splitRatio = ownerInfo.revenueShareRatio || 50;
+        investorAnnualRevenue = annualProfit * (splitRatio / 100);
+        ownerAnnualRevenue = annualProfit * ((100 - splitRatio) / 100);
+        break;
+
+      case 'emc':
+        // EMC mode: Investor gets 80% for first 5 years, then 60%
+        // Simplified: using 70% average
+        splitRatio = 70;
+        investorAnnualRevenue = annualProfit * 0.7;
+        ownerAnnualRevenue = annualProfit * 0.3;
+        break;
+    }
+
+    const investorTotalRevenue = investorAnnualRevenue * projectLifetime;
+    const ownerTotalRevenue = ownerAnnualRevenue * projectLifetime;
+
+    // Calculate investor IRR (simplified)
+    const investorInvestment = result.totalInvestment * (result.metrics.irr ? 0.01 : 0);
+    const investorIrr = investorInvestment > 0 ? (investorAnnualRevenue / investorInvestment) : 0;
+
+    // Owner IRR (only applicable if owner has revenue)
+    const ownerIrr = ownerAnnualRevenue > 0 ? (ownerAnnualRevenue / result.totalInvestment) * 0.5 : 0;
+
+    return {
+      investorAnnualRevenue,
+      ownerAnnualRevenue,
+      investorTotalRevenue,
+      ownerTotalRevenue,
+      investorIrr,
+      ownerIrr,
+      splitRatio,
+      collaborationModel,
     };
   }
 }
