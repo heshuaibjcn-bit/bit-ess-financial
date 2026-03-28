@@ -238,16 +238,23 @@ export const localProjectService = {
   /**
    * 保存项目列表
    */
-  saveProjects: (projects: LocalProject[]): void => {
+  saveProjects: (projects: LocalProject[], userId?: string): void => {
     try {
       const data = localStorage.getItem(KEYS.PROJECTS);
       const allProjects: LocalProject[] = data ? JSON.parse(data) : [];
 
-      // 更新属于当前用户的项目
-      const otherProjects = allProjects.filter(p => !projects.some(up => up.id === p.id));
-      const updated = [...otherProjects, ...projects];
-
-      localStorage.setItem(KEYS.PROJECTS, JSON.stringify(updated));
+      // 如果提供了 userId，只更新该用户的项目
+      if (userId) {
+        const userProjectIds = new Set(projects.map(p => p.id));
+        const otherUsersProjects = allProjects.filter(p => p.userId !== userId);
+        const updated = [...otherUsersProjects, ...projects];
+        localStorage.setItem(KEYS.PROJECTS, JSON.stringify(updated));
+      } else {
+        // 旧逻辑：更新属于当前用户的项目（用于向后兼容）
+        const otherProjects = allProjects.filter(p => !projects.some(up => up.id === p.id));
+        const updated = [...otherProjects, ...projects];
+        localStorage.setItem(KEYS.PROJECTS, JSON.stringify(updated));
+      }
     } catch (e) {
       console.error('Failed to save projects:', e);
     }
@@ -275,7 +282,7 @@ export const localProjectService = {
 
     const projects = localProjectService.getProjects(userId);
     projects.unshift(newProject);
-    localProjectService.saveProjects(projects);
+    localProjectService.saveProjects(projects, userId);
 
     return newProject;
   },
@@ -298,7 +305,7 @@ export const localProjectService = {
     };
 
     projects[index] = updated;
-    localProjectService.saveProjects(projects);
+    localProjectService.saveProjects(projects, userId);
 
     return updated;
   },
@@ -309,7 +316,7 @@ export const localProjectService = {
   deleteProject: (userId: string, projectId: string): void => {
     const projects = localProjectService.getProjects(userId);
     const filtered = projects.filter(p => p.id !== projectId);
-    localProjectService.saveProjects(filtered);
+    localProjectService.saveProjects(filtered, userId);
   },
 
   /**
