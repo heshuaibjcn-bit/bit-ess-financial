@@ -11,7 +11,6 @@ import './index.css';
 
 // Import components
 import { CalculatorForm } from './components/CalculatorForm';
-import { ResultsOverview } from './components/ResultsOverview';
 import { PageErrorBoundary } from './components';
 import { useCalculator } from './hooks/useCalculator';
 import { useAllProvinces } from './hooks/useProvince';
@@ -103,86 +102,16 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Calculator Form */}
-          <div className="lg:col-span-2">
-            <PageErrorBoundary pageName="CalculatorForm">
-              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <CalculatorForm
-                  onSubmit={handleSubmit}
-                  onCalculate={handleCalculate}
-                />
-              </div>
-            </PageErrorBoundary>
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Calculator Form - Full Width for 5-Step Workflow */}
+        <PageErrorBoundary pageName="CalculatorForm">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <CalculatorForm
+              onSubmit={handleSubmit}
+              onCalculate={handleCalculate}
+            />
           </div>
-
-          {/* Right Column: Results */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-8">
-              <PageErrorBoundary pageName="ResultsOverview">
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                    {t('results.title')}
-                  </h2>
-
-                  {loading && (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                      <span className="ml-4 text-gray-600">{t('common.loading')}</span>
-                    </div>
-                  )}
-
-                  {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                      <div className="flex">
-                        <svg className="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                        <div className="flex-1">
-                          <h3 className="text-sm font-medium text-red-800">{t('errors.calculation')}</h3>
-                          <p className="mt-1 text-sm text-red-700">{error.message}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {result && !loading && (
-                    <>
-                      <ResultsOverview
-                        result={result}
-                        benchmarkComparison={benchmarkComparison}
-                      />
-                      {/* Add disclaimer for investment results */}
-                      <div className="mt-4">
-                        <Disclaimer type="minimal" variant="banner" />
-                      </div>
-                    </>
-                  )}
-
-                  {!result && !loading && !error && (
-                    <div className="text-center py-12">
-                      <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M15 11h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                      </svg>
-                      <p className="text-gray-500 font-medium">
-                        完善左侧表单信息
-                      </p>
-                      <p className="text-sm text-gray-400 mt-2">
-                        填写项目参数后将自动计算投资收益
-                      </p>
-                      <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-xs text-blue-800">
-                          💡 提示：填写完基本信息后，点击"下一步"继续填写成本构成、运营参数等信息
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </PageErrorBoundary>
-            </div>
-          </div>
-        </div>
+        </PageErrorBoundary>
 
         {/* Info Section */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
