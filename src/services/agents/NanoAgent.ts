@@ -14,6 +14,39 @@
 import { getCommunicationLogger } from './AgentCommunicationLogger';
 
 /**
+ * Retry configuration for API calls
+ */
+export interface RetryConfig {
+  maxRetries: number;
+  initialDelay: number; // milliseconds
+  maxDelay: number; // milliseconds
+  backoffMultiplier: number;
+  jitter: boolean; // Add random jitter to prevent thundering herd
+  retryableErrors: Array<string | RegExp>; // Error patterns that are retryable
+}
+
+/**
+ * Default retry configuration
+ */
+const DEFAULT_RETRY_CONFIG: RetryConfig = {
+  maxRetries: 3,
+  initialDelay: 1000, // 1 second
+  maxDelay: 10000, // 10 seconds
+  backoffMultiplier: 2,
+  jitter: true,
+  retryableErrors: [
+    'ECONNRESET',
+    'ETIMEDOUT',
+    'ENOTFOUND',
+    'EAI_AGAIN',
+    /5\d\d/, // 5xx server errors
+    /timeout/i,
+    /network/i,
+    /connection/i
+  ]
+};
+
+/**
  * GLM Client for智谱AI API
  */
 class GLMClient {
@@ -21,11 +54,120 @@ class GLMClient {
   private baseURL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
   private agentType: string;
   private agentName: string;
+  private retryConfig: RetryConfig;
 
-  constructor(apiKey: string, agentType: string, agentName: string) {
+  constructor(apiKey: string, agentType: string, agentName: string, retryConfig?: Partial<RetryConfig>) {
     this.apiKey = apiKey;
     this.agentType = agentType;
     this.agentName = agentName;
+    this.retryConfig = { ...DEFAULT_RETRY_CONFIG, ...retryConfig };
+  }
+
+  /**
+   * Check if an error is retryable
+   */
+  private isRetryableError(error: Error): boolean {
+    const errorMessage = error.message.toLowerCase();
+
+    return this.retryConfig.retryableErrors.some(pattern => {
+      if (typeof pattern === 'string') {
+        return errorMessage.includes(pattern.toLowerCase());
+      }
+      if (pattern instanceof RegExp) {
+        return pattern.test(error.message);
+      }
+      return false;
+    });
+  }
+
+  /**
+   * Calculate delay with exponential backoff and optional jitter
+   */
+  private calculateDelay(attempt: number): number {
+    const exponentialDelay = Math.min(
+      this.retryConfig.initialDelay * Math.pow(this.retryConfig.backoffMultiplier, attempt),
+      this.retryConfig.maxDelay
+    );
+
+    if (this.retryConfig.jitter) {
+      // Add ±25% random jitter to prevent thundering herd
+      const jitterFactor = 0.75 + Math.random() * 0.5; // 0.75 to 1.25
+      return Math.round(exponentialDelay * jitterFactor);
+    }
+
+    return exponentialDelay;
+  }
+
+  /**
+   * Sleep for specified milliseconds
+   */
+  private async sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Execute API call with retry logic
+   */
+  private async executeWithRetry<T>(
+    fn: () => Promise<T>,
+    requestId: string
+  ): Promise<T> {
+    const logger = getCommunicationLogger();
+    let lastError: Error;
+
+    for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error as Error;
+
+        // Check if error is retryable
+        if (!(error instanceof Error) || !this.isRetryableError(error)) {
+          // Not retryable, throw immediately
+          throw error;
+        }
+
+        // Check if we have more retries available
+        if (attempt < this.retryConfig.maxRetries) {
+          const delay = this.calculateDelay(attempt);
+
+          logger.logError({
+            agentType: this.agentType,
+            agentName: this.agentName,
+            model: 'glm-4-turbo',
+            error: `Retry ${attempt + 1}/${this.retryConfig.maxRetries} after ${delay}ms: ${error.message}`,
+            requestId,
+          });
+
+          console.warn(
+            `[${this.agentName}] API call failed (attempt ${attempt + 1}/${this.retryConfig.maxRetries}), ` +
+            `retrying in ${delay}ms: ${error.message}`
+          );
+
+          await this.sleep(delay);
+        } else {
+          // Max retries reached
+          logger.logError({
+            agentType: this.agentType,
+            agentName: this.agentName,
+            model: 'glm-4-turbo',
+            error: `Max retries (${this.retryConfig.maxRetries}) reached: ${error.message}`,
+            requestId,
+          });
+
+          console.error(
+            `[${this.agentName}] API call failed after ${this.retryConfig.maxRetries} retries: ${error.message}`
+          );
+
+          throw new Error(
+            `GLM API call failed after ${this.retryConfig.maxRetries} retries: ${error.message}`
+          );
+        }
+      }
+    }
+
+    // Should never reach here, but TypeScript needs it
+    throw lastError;
   }
 
   async messagesCreate(params: {
@@ -46,9 +188,13 @@ class GLMClient {
       model: params.model,
       prompt: `${params.system}\n\n${prompt}`,
       requestId,
+      metadata: {
+        retryConfig: this.retryConfig
+      }
     });
 
-    try {
+    // Execute with retry logic
+    const result = await this.executeWithRetry(async () => {
       const response = await fetch(this.baseURL, {
         method: 'POST',
         headers: {
@@ -70,55 +216,39 @@ class GLMClient {
 
       if (!response.ok) {
         const errorText = await response.text();
-        // 记录错误
-        logger.logError({
-          agentType: this.agentType,
-          agentName: this.agentName,
-          model: params.model,
-          error: `GLM API error: ${response.status} - ${errorText}`,
-          requestId,
-        });
-        throw new Error(`GLM API error: ${response.status} - ${errorText}`);
-    }
+        const error = new Error(`GLM API error: ${response.status} - ${errorText}`);
+        throw error;
+      }
 
-    const data = await response.json();
-    const responseText = data.choices[0]?.message?.content || '';
+      const data = await response.json();
+      const responseText = data.choices[0]?.message?.content || '';
 
-    // 记录响应
-    logger.logResponse({
-      agentType: this.agentType,
-      agentName: this.agentName,
-      model: params.model,
-      response: responseText,
-      tokens: {
-        input: data.usage?.prompt_tokens || 0,
-        output: data.usage?.completion_tokens || 0,
-        total: data.usage?.total_tokens || 0,
-      },
-      duration,
-      requestId,
-    });
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: responseText,
-        },
-      ],
-    };
-  } catch (error) {
-    // 记录未捕获的错误
-    if (!(error instanceof Error) || !error.message.includes('GLM API error')) {
-      logger.logError({
+      // 记录响应
+      logger.logResponse({
         agentType: this.agentType,
         agentName: this.agentName,
         model: params.model,
-        error: error instanceof Error ? error.message : String(error),
+        response: responseText,
+        tokens: {
+          input: data.usage?.prompt_tokens || 0,
+          output: data.usage?.completion_tokens || 0,
+          total: data.usage?.total_tokens || 0,
+        },
+        duration,
         requestId,
       });
-    }
-    throw error;
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: responseText,
+          },
+        ],
+      };
+    }, requestId);
+
+    return result;
   }
 }
 

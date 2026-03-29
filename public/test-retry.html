@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Retry Logic Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .retry-line {
+      stroke-dasharray: 5;
+      animation: dash 1s linear infinite;
+    }
+    @keyframes dash {
+      to { stroke-dashoffset: -10; }
+    }
+    .fade-in {
+      animation: fadeIn 0.5s ease-out;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-8">
+  <div class="max-w-4xl mx-auto">
+    <div class="mb-8 text-center">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">🔄 Agent Retry Logic Demo</h1>
+      <p class="text-gray-600">Exponential backoff with jitter for resilient API calls</p>
+    </div>
+
+    <!-- Configuration Panel -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+      <h3 class="text-lg font-semibold mb-4">Retry Configuration</h3>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Max Retries</label>
+          <input type="number" id="maxRetries" value="3" min="0" max="10"
+            class="w-full border border-gray-300 rounded px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Initial Delay (ms)</label>
+          <input type="number" id="initialDelay" value="1000" min="100" max="10000" step="100"
+            class="w-full border border-gray-300 rounded px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Max Delay (ms)</label>
+          <input type="number" id="maxDelay" value="10000" min="1000" max="60000" step="1000"
+            class="w-full border border-gray-300 rounded px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Backoff Multiplier</label>
+          <input type="number" id="backoffMultiplier" value="2" min="1" max="10" step="0.5"
+            class="w-full border border-gray-300 rounded px-3 py-2">
+        </div>
+        <div class="flex items-center">
+          <label class="flex items-center cursor-pointer">
+            <input type="checkbox" id="jitter" checked class="mr-2">
+            <span class="text-sm font-medium text-gray-700">Enable Jitter</span>
+          </label>
+        </div>
+        <div class="flex items-end">
+          <button id="runDemo" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg w-full"
+            onclick="runDemo()">
+            Run Retry Demo
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="space-y-6"></div>
+  </div>
+
+  <script>
+    // Simulated API call with configurable failure rate
+    class SimulatedAPI {
+      constructor(failureRate = 0.5) {
+        this.failureRate = failureRate;
+        this.attempt = 0;
+      }
+
+      async call() {
+        this.attempt++;
+        const willFail = Math.random() < this.failureRate;
+
+        if (willFail) {
+          // Simulate different types of failures
+          const errors = [
+            'ECONNRESET: Connection reset by peer',
+            'ETIMEDOUT: Request timeout',
+            '503: Service Unavailable',
+            '502: Bad Gateway',
+            'network: Network error'
+          ];
+          throw new Error(errors[Math.floor(Math.random() * errors.length)]);
+        }
+
+        // Simulate success
+        await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
+        return {
+          success: true,
+          attempt: this.attempt,
+          data: { result: 'Mock API response' }
+        };
+      }
+    }
+
+    // Retry logic with exponential backoff
+    class RetryManager {
+      constructor(config) {
+        this.config = config;
+      }
+
+      isRetryableError(error) {
+        const msg = error.message.toLowerCase();
+        return msg.includes('econnreset') ||
+               msg.includes('etimedout') ||
+               msg.includes('503') ||
+               msg.includes('502') ||
+               msg.includes('network') ||
+               msg.includes('timeout');
+      }
+
+      calculateDelay(attempt) {
+        const exponentialDelay = Math.min(
+          this.config.initialDelay * Math.pow(this.config.backoffMultiplier, attempt),
+          this.config.maxDelay
+        );
+
+        if (this.config.jitter) {
+          const jitterFactor = 0.75 + Math.random() * 0.5;
+          return Math.round(exponentialDelay * jitterFactor);
+        }
+
+        return exponentialDelay;
+      }
+
+      async sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+
+      async execute(apiCall) {
+        const startTime = Date.now();
+        const attempts = [];
+
+        for (let attempt = 0; attempt <= this.config.maxRetries; attempt++) {
+          try {
+            const result = await apiCall();
+            const duration = Date.now() - startTime;
+
+            return {
+              success: true,
+              attempts,
+              totalDuration: duration,
+              result
+            };
+          } catch (error) {
+            attempts.push({
+              attempt: attempt + 1,
+              error: error.message,
+              timestamp: new Date().toISOString()
+            });
+
+            if (!this.isRetryableError(error) || attempt >= this.config.maxRetries) {
+              throw new Error(`API call failed: ${error.message}`);
+            }
+
+            const delay = this.calculateDelay(attempt);
+            console.log(`Retrying in ${delay}ms...`);
+            await this.sleep(delay);
+          }
+        }
+
+        throw new Error('Max retries exceeded');
+      }
+    }
+
+    function formatDuration(ms) {
+      if (ms < 1000) return `${ms}ms`;
+      return `${(ms / 1000).toFixed(2)}s`;
+    }
+
+    async function runDemo() {
+      const config = {
+        maxRetries: parseInt(document.getElementById('maxRetries').value),
+        initialDelay: parseInt(document.getElementById('initialDelay').value),
+        maxDelay: parseInt(document.getElementById('maxDelay').value),
+        backoffMultiplier: parseFloat(document.getElementById('backoffMultiplier').value),
+        jitter: document.getElementById('jitter').checked
+      };
+
+      const btn = document.getElementById('runDemo');
+      btn.disabled = true;
+      btn.textContent = '⏳ Running...';
+
+      document.getElementById('results').innerHTML = `
+        <div class="text-center py-8 text-gray-500">
+          <div class="animate-spin inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-4"></div>
+          <p>Executing API call with retry logic...</p>
+        </div>
+      `;
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const api = new SimulatedAPI(0.6); // 60% failure rate
+      const retryManager = new RetryManager(config);
+
+      try {
+        const result = await retryManager.execute(() => api.call());
+        displaySuccess(result, config);
+      } catch (error) {
+        displayFailure(error, config);
+      }
+
+      btn.disabled = false;
+      btn.textContent = '🔄 Run Retry Demo';
+    }
+
+    function displaySuccess(result, config) {
+      const html = `
+        <div class="fade-in">
+          <!-- Success Banner -->
+          <div class="bg-green-50 border-2 border-green-200 rounded-lg p-6 mb-8">
+            <div class="flex items-center">
+              <span class="text-4xl mr-4">✅</span>
+              <div>
+                <h3 class="text-xl font-bold text-green-900">API Call Succeeded!</h3>
+                <p class="text-green-700">Completed after ${result.attempts.length + 1} attempts</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Metrics -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+              <div class="text-sm text-gray-600 mb-2">Total Duration</div>
+              <div class="text-3xl font-bold text-blue-600">${formatDuration(result.totalDuration)}</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+              <div class="text-sm text-gray-600 mb-2">Total Attempts</div>
+              <div class="text-3xl font-bold text-purple-600">${result.attempts.length + 1}</div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+              <div class="text-sm text-gray-600 mb-2">Retry Rate</div>
+              <div class="text-3xl font-bold text-orange-600">${((result.attempts.length / (result.attempts.length + 1)) * 100).toFixed(0)}%</div>
+            </div>
+          </div>
+
+          <!-- Retry Timeline -->
+          <div class="bg-white rounded-lg shadow p-6 mb-8">
+            <h3 class="text-lg font-semibold mb-4">Retry Timeline</h3>
+            <div class="space-y-3">
+              ${result.attempts.map((attempt, i) => {
+                const delay = i === 0 ? 0 : calculateDelayBetween(config, i - 1);
+                return `
+                  <div class="flex items-center gap-4">
+                    <div class="w-24 text-sm font-mono text-red-600">Attempt ${attempt.attempt}</div>
+                    <div class="flex-1 bg-red-50 rounded px-3 py-2 text-sm text-red-700">
+                      ${attempt.error}
+                    </div>
+                    <div class="w-24 text-sm text-gray-600 text-right">
+                      ${delay > 0 ? `+${formatDuration(delay)}` : '-'}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+              <div class="flex items-center gap-4">
+                <div class="w-24 text-sm font-mono text-green-600">Attempt ${result.attempts.length + 1}</div>
+                <div class="flex-1 bg-green-50 rounded px-3 py-2 text-sm text-green-700">
+                  ✓ Success
+                </div>
+                <div class="w-24 text-sm text-gray-600 text-right">-</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Configuration Used -->
+          <div class="bg-gray-50 rounded-lg p-6">
+            <h3 class="text-lg font-semibold mb-4">Configuration</h3>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+              <div><strong>Max Retries:</strong> ${config.maxRetries}</div>
+              <div><strong>Initial Delay:</strong> ${formatDuration(config.initialDelay)}</div>
+              <div><strong>Max Delay:</strong> ${formatDuration(config.maxDelay)}</div>
+              <div><strong>Backoff:</strong> ${config.backoffMultiplier}x</div>
+              <div><strong>Jitter:</strong> ${config.jitter ? 'Enabled' : 'Disabled'}</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('results').innerHTML = html;
+    }
+
+    function displayFailure(error, config) {
+      const html = `
+        <div class="fade-in">
+          <!-- Failure Banner -->
+          <div class="bg-red-50 border-2 border-red-200 rounded-lg p-6 mb-8">
+            <div class="flex items-center">
+              <span class="text-4xl mr-4">❌</span>
+              <div>
+                <h3 class="text-xl font-bold text-red-900">API Call Failed</h3>
+                <p class="text-red-700">${error.message}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Info -->
+          <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <h3 class="text-lg font-semibold mb-2">💡 Tips</h3>
+            <ul class="text-sm text-yellow-800 space-y-1">
+              <li>• Try increasing <strong>Max Retries</strong> for more resilient connections</li>
+              <li>• Adjust <strong>Initial Delay</strong> based on your network conditions</li>
+              <li>• <strong>Jitter</strong> helps prevent thundering herd problems</li>
+              <li>• Some errors (401, 403, 400) are not retryable by design</li>
+            </ul>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('results').innerHTML = html;
+    }
+
+    function calculateDelayBetween(config, attempt) {
+      const exponentialDelay = Math.min(
+        config.initialDelay * Math.pow(config.backoffMultiplier, attempt),
+        config.maxDelay
+      );
+      return config.jitter ? Math.round(exponentialDelay * (0.75 + Math.random() * 0.5)) : exponentialDelay;
+    }
+
+    // Run demo on load
+    window.addEventListener('load', () => {
+      setTimeout(runDemo, 500);
+    });
+  </script>
+</body>
+</html>
