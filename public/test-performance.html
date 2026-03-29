@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Performance Benchmark</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .bar-chart {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .bar {
+      height: 24px;
+      border-radius: 4px;
+      transition: width 0.5s ease-out;
+    }
+    .bar-sequential { background: #ef4444; }
+    .bar-parallel { background: #10b981; }
+    .metric-card {
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .metric-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-8">
+  <div class="max-w-6xl mx-auto">
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Agent Performance Benchmark</h1>
+      <p class="text-gray-600">Compare sequential vs parallel execution of NanoClaw agents</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+      <div class="flex flex-wrap gap-4 items-center">
+        <button
+          id="runBenchmark"
+          class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg"
+          onclick="runBenchmark()"
+        >
+          Run Benchmark
+        </button>
+        <button
+          id="runSequential"
+          class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-6 rounded-lg"
+          onclick="runSequential()"
+        >
+          Sequential Only
+        </button>
+        <button
+          id="runParallel"
+          class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg"
+          onclick="runParallel()"
+        >
+          Parallel Only
+        </button>
+        <div class="ml-auto text-sm text-gray-600">
+          Agents: <span id="agentCount">7</span> |
+          Concurrency: <span id="concurrency">7</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="results" class="space-y-6">
+      <!-- Results will be inserted here -->
+    </div>
+  </div>
+
+  <script type="module">
+    import { getAgentOrchestrator } from '/src/services/agents/AgentOrchestrator.ts';
+
+    // Test configurations for all 7 agents
+    const AGENT_CONFIGS = [
+      {
+        type: 'PolicyUpdateAgent',
+        input: {
+          sources: ['https://www.ndrc.gov.cn', 'https://www.nea.gov.cn'],
+          checkInterval: 24,
+          forceUpdate: true
+        },
+        priority: 'medium' as const
+      },
+      {
+        type: 'TariffUpdateAgent',
+        input: {
+          provinces: ['广东', '浙江', '江苏'],
+          checkLatest: true,
+          compareWithPrevious: false
+        },
+        priority: 'medium' as const
+      },
+      {
+        type: 'DueDiligenceAgent',
+        input: {
+          companyName: '腾讯科技有限公司',
+          projectType: '储能',
+          investmentAmount: 50000000
+        },
+        priority: 'high' as const
+      },
+      {
+        type: 'SentimentAnalysisAgent',
+        input: {
+          query: '储能行业 市场前景',
+          sources: ['news', 'social', 'reports'],
+          dateRange: { start: '2025-01-01', end: '2025-12-31' }
+        },
+        priority: 'low' as const
+      },
+      {
+        type: 'TechnicalFeasibilityAgent',
+        input: {
+          projectName: '测试储能项目',
+          location: { province: '广东', city: '深圳' },
+          systemConfig: {
+            capacity: 10,
+            powerRating: 5,
+            batteryType: '锂离子电池',
+            dischargeDuration: 2
+          },
+          gridConstraints: {
+            maxChargePower: 5,
+            maxDischargePower: 5,
+            dailyCycles: 2
+          }
+        },
+        priority: 'high' as const
+      },
+      {
+        type: 'FinancialFeasibilityAgent',
+        input: {
+          projectName: '测试储能项目',
+          province: '广东',
+          system: { capacity: 2, power: 1, duration: 2 },
+          costs: {
+            batteryCost: 1200,
+            pcsCost: 300,
+            bmsCost: 50,
+            emsCost: 50000,
+            otherCost: 100,
+            installationCostPerKw: 200,
+            gridConnectionCost: 100000,
+            landCost: 50000,
+            developmentCost: 100000,
+            permittingCost: 50000,
+            contingencyPercent: 10
+          },
+          tariff: { peakPrice: 1.2, valleyPrice: 0.4, flatPrice: 0.8 },
+          operations: {
+            systemEfficiency: 0.92,
+            depthOfDischarge: 0.9,
+            cyclesPerDay: 2,
+            degradationRate: 0.02,
+            availabilityPercent: 0.95
+          },
+          financial: {
+            projectYears: 10,
+            discountRate: 0.08,
+            electricityPriceEscalation: 0.02,
+            omCostPercent: 0.02,
+            insurancePercent: 0.005
+          }
+        },
+        priority: 'high' as const
+      },
+      {
+        type: 'ReportGenerationAgent',
+        input: {
+          projectName: '测试储能项目',
+          companyName: '腾讯科技有限公司',
+          province: '广东',
+          reportType: 'investment',
+          includeSections: [
+            'executive_summary',
+            'policy_analysis',
+            'financial_feasibility',
+            'recommendations'
+          ],
+          format: 'pdf',
+          language: 'zh'
+        },
+        priority: 'medium' as const
+      }
+    ];
+
+    let benchmarkResults = {
+      sequential: null,
+      parallel: null
+    };
+
+    function formatDuration(ms) {
+      if (ms < 1000) return `${ms}ms`;
+      if (ms < 60000) return `${(ms / 1000).toFixed(2)}s`;
+      return `${(ms / 60000).toFixed(2)}m`;
+    }
+
+    function formatSpeedup(factor) {
+      return factor.toFixed(2) + 'x';
+    }
+
+    async function runSequential() {
+      const orchestrator = getAgentOrchestrator();
+      const startTime = Date.now();
+
+      // Execute one by one (simulated sequential)
+      const results = [];
+      for (const config of AGENT_CONFIGS) {
+        const result = await orchestrator.executeAllParallel([config]);
+        results.push(...result.tasks);
+      }
+
+      const duration = Date.now() - startTime;
+      benchmarkResults.sequential = {
+        duration,
+        successCount: results.filter(r => r.status === 'completed').length,
+        totalCount: results.length
+      };
+
+      displayResults('sequential', duration, results);
+      updateComparison();
+    }
+
+    async function runParallel() {
+      const orchestrator = getAgentOrchestrator();
+      const startTime = Date.now();
+
+      const result = await orchestrator.executeAllParallel(AGENT_CONFIGS);
+
+      const duration = Date.now() - startTime;
+      benchmarkResults.parallel = {
+        duration,
+        successCount: result.successCount,
+        totalCount: result.tasks.length
+      };
+
+      displayResults('parallel', duration, result.tasks);
+      updateComparison();
+    }
+
+    async function runBenchmark() {
+      document.getElementById('runBenchmark').disabled = true;
+      document.getElementById('runBenchmark').textContent = 'Running Benchmark...';
+
+      // Clear previous results
+      document.getElementById('results').innerHTML = '<div class="text-center py-12 text-gray-500">Running benchmark...</div>';
+
+      // Run sequential first
+      await runSequential();
+
+      // Small delay between runs
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Run parallel
+      await runParallel();
+
+      document.getElementById('runBenchmark').disabled = false;
+      document.getElementById('runBenchmark').textContent = 'Run Benchmark';
+    }
+
+    function displayResults(mode, duration, tasks) {
+      const successCount = tasks.filter(t => t.status === 'completed').length;
+      const failCount = tasks.filter(t => t.status === 'failed').length;
+
+      const html = `
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold">${mode === 'sequential' ? 'Sequential' : 'Parallel'} Execution</h3>
+            <div class="text-sm text-gray-600">${new Date().toLocaleTimeString()}</div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="metric-card bg-blue-50 rounded-lg p-4">
+              <div class="text-sm text-blue-600 mb-1">Total Duration</div>
+              <div class="text-2xl font-bold text-blue-900">${formatDuration(duration)}</div>
+            </div>
+            <div class="metric-card bg-green-50 rounded-lg p-4">
+              <div class="text-sm text-green-600 mb-1">Success Rate</div>
+              <div class="text-2xl font-bold text-green-900">${successCount}/${tasks.length}</div>
+            </div>
+            <div class="metric-card bg-purple-50 rounded-lg p-4">
+              <div class="text-sm text-purple-600 mb-1">Avg per Agent</div>
+              <div class="text-2xl font-bold text-purple-900">${formatDuration(duration / tasks.length)}</div>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <h4 class="font-semibold text-sm text-gray-700">Individual Agent Times:</h4>
+            ${tasks.map(task => {
+              const duration = task.startTime && task.endTime
+                ? new Date(task.endTime).getTime() - new Date(task.startTime).getTime()
+                : 0;
+              const statusIcon = task.status === 'completed' ? '✅' : '❌';
+              return `
+                <div class="flex items-center justify-between text-sm bg-gray-50 rounded p-2">
+                  <span>${statusIcon} ${task.type}</span>
+                  <span class="font-mono">${formatDuration(duration)}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+
+      document.getElementById('results').innerHTML += html;
+    }
+
+    function updateComparison() {
+      if (!benchmarkResults.sequential || !benchmarkResults.parallel) return;
+
+      const { sequential: seq, parallel: par } = benchmarkResults;
+      const speedup = seq.duration / par.duration;
+      const timeSaved = seq.duration - par.duration;
+      const efficiency = (speedup / AGENT_CONFIGS.length) * 100;
+
+      const comparisonHtml = `
+        <div class="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg shadow p-6 border-2 border-green-200">
+          <h3 class="text-xl font-bold mb-4">Performance Comparison</h3>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div>
+              <h4 class="font-semibold mb-2">Execution Time</h4>
+              <div class="space-y-2">
+                <div class="bar-chart">
+                  <span class="text-sm w-24">Sequential</span>
+                  <div class="bar bar-sequential" style="width: ${Math.min(100, (seq.duration / (seq.duration + par.duration)) * 100)}%">
+                    <span class="text-xs text-white px-2">${formatDuration(seq.duration)}</span>
+                  </div>
+                </div>
+                <div class="bar-chart">
+                  <span class="text-sm w-24">Parallel</span>
+                  <div class="bar bar-parallel" style="width: ${Math.min(100, (par.duration / (seq.duration + par.duration)) * 100)}%">
+                    <span class="text-xs text-white px-2">${formatDuration(par.duration)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="space-y-3">
+              <div class="bg-white rounded p-3">
+                <div class="text-sm text-gray-600">Speedup Factor</div>
+                <div class="text-2xl font-bold text-green-600">${formatSpeedup(speedup)}x</div>
+                <div class="text-xs text-gray-500">faster with parallel execution</div>
+              </div>
+              <div class="bg-white rounded p-3">
+                <div class="text-sm text-gray-600">Time Saved</div>
+                <div class="text-2xl font-bold text-blue-600">${formatDuration(timeSaved)}</div>
+                <div class="text-xs text-gray-500">${((timeSaved / seq.duration) * 100).toFixed(1)}% reduction</div>
+              </div>
+              <div class="bg-white rounded p-3">
+                <div class="text-sm text-gray-600">Efficiency</div>
+                <div class="text-2xl font-bold text-purple-600">${efficiency.toFixed(1)}%</div>
+                <div class="text-xs text-gray-500">of ideal parallel speedup</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-lg p-4">
+            <h4 class="font-semibold mb-2">Key Insights:</h4>
+            <ul class="text-sm space-y-1 text-gray-700">
+              <li>• Parallel execution completed ${formatSpeedup(speedup)}x faster</li>
+              <li>• Saved ${formatDuration(timeSaved)} compared to sequential execution</li>
+              <li>• All ${AGENT_CONFIGS.length} agents executed concurrently</li>
+              <li>• ${efficiency > 80 ? 'Excellent' : efficiency > 50 ? 'Good' : 'Fair'} parallelization efficiency (${efficiency.toFixed(1)}%)</li>
+            </ul>
+          </div>
+        </div>
+      `;
+
+      // Add comparison at the top
+      document.getElementById('results').innerHTML = comparisonHtml + document.getElementById('results').innerHTML;
+    }
+
+    // Expose functions to window
+    window.runBenchmark = runBenchmark;
+    window.runSequential = runSequential;
+    window.runParallel = runParallel;
+  </script>
+</body>
+</html>
