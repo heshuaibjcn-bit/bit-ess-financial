@@ -133,21 +133,43 @@
         description: 'Tests financial feasibility analysis',
         input: {
           projectName: '测试储能项目',
-          initialInvestment: 50000000,
-          operatingCosts: {
-            annualMaintenance: 500000,
-            electricityCost: 0.5,
-            laborCost: 200000
+          province: '广东',
+          system: {
+            capacity: 2, // MWh
+            power: 1, // MW
+            duration: 2 // hours
           },
-          revenueStreams: {
-            arbitrageRevenue: 8000000,
-            capacityRevenue: 2000000,
-            ancillaryServicesRevenue: 1000000
+          costs: {
+            batteryCost: 1200, // CNY/kWh
+            pcsCost: 300, // CNY/kW
+            bmsCost: 50, // CNY/kWh
+            emsCost: 50000, // CNY/system
+            otherCost: 100, // CNY/kWh
+            installationCostPerKw: 200,
+            gridConnectionCost: 100000,
+            landCost: 50000,
+            developmentCost: 100000,
+            permittingCost: 50000,
+            contingencyPercent: 10
           },
-          financialParameters: {
-            projectLifetime: 10,
+          tariff: {
+            peakPrice: 1.2, // CNY/kWh
+            valleyPrice: 0.4, // CNY/kWh
+            flatPrice: 0.8 // CNY/kWh
+          },
+          operations: {
+            systemEfficiency: 0.92,
+            depthOfDischarge: 0.9,
+            cyclesPerDay: 2,
+            degradationRate: 0.02,
+            availabilityPercent: 0.95
+          },
+          financial: {
+            projectYears: 10,
             discountRate: 0.08,
-            electricityPriceEscalation: 0.02
+            electricityPriceEscalation: 0.02,
+            omCostPercent: 0.02,
+            insurancePercent: 0.005
           }
         }
       },
@@ -156,16 +178,20 @@
         displayName: 'Report Generation Agent',
         description: 'Tests investment report generation',
         input: {
-          reportType: 'investment',
           projectName: '测试储能项目',
-          data: {
-            policy: { summary: '政策支持良好', risk: 'low' },
-            tariff: { peakValleySpread: 0.8, arbitragePotential: 'high' },
-            dueDiligence: { companyRisk: 'low', creditScore: 85 },
-            sentiment: { overallSentiment: 'positive', trend: 'growing' },
-            technical: { feasibility: 'high', constraints: [] },
-            financial: { irr: 0.15, npv: 25000000, paybackPeriod: 6.5 }
-          }
+          companyName: '腾讯科技有限公司',
+          province: '广东',
+          reportType: 'investment',
+          includeSections: [
+            'executive_summary',
+            'policy_analysis',
+            'tariff_analysis',
+            'company_background',
+            'financial_feasibility',
+            'recommendations'
+          ],
+          format: 'pdf',
+          language: 'zh'
         }
       }
     ];
