@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Logger Test</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-8">
+  <div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl font-bold mb-4">Agent Communication Logger Test</h1>
+    <p class="text-gray-600 mb-6">This page directly tests the logger to verify the dashboard works.</p>
+
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <button
+        id="addLogs"
+        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        onclick="addTestLogs()"
+      >
+        Add Test Logs
+      </button>
+      <button
+        id="clearLogs"
+        class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded ml-2"
+        onclick="clearTestLogs()"
+      >
+        Clear Logs
+      </button>
+    </div>
+
+    <div id="status" class="bg-white rounded-lg shadow p-6">
+      <p class="text-gray-600">Click "Add Test Logs" to populate the dashboard with test data.</p>
+    </div>
+  </div>
+
+  <script type="module">
+    import { getCommunicationLogger } from '/src/services/agents/AgentCommunicationLogger.ts';
+
+    const logger = getCommunicationLogger();
+
+    function addTestLogs() {
+      const agents = [
+        'PolicyUpdateAgent',
+        'TariffUpdateAgent',
+        'DueDiligenceAgent',
+        'SentimentAnalysisAgent',
+        'TechnicalFeasibilityAgent',
+        'FinancialFeasibilityAgent',
+        'ReportGenerationAgent'
+      ];
+
+      agents.forEach(agentName => {
+        // Simulate a request
+        logger.logRequest({
+          agentType: agentName,
+          agentName: agentName,
+          model: 'glm-4-turbo',
+          prompt: `Test prompt for ${agentName}`,
+          requestId: `test-${Date.now()}-${Math.random()}`
+        });
+
+        // Simulate a response (with some failures)
+        const shouldFail = Math.random() > 0.8; // 20% failure rate
+        if (shouldFail) {
+          logger.logError({
+            agentType: agentName,
+            agentName: agentName,
+            model: 'glm-4-turbo',
+            error: `Simulated error for ${agentName}`
+          });
+        } else {
+          logger.logResponse({
+            agentType: agentName,
+            agentName: agentName,
+            model: 'glm-4-turbo',
+            response: `Test response for ${agentName}`,
+            tokens: {
+              input: 100,
+              output: 200,
+              total: 300
+            },
+            duration: Math.floor(Math.random() * 1000) + 100, // 100-1100ms
+          });
+        }
+      });
+
+      const metrics = logger.getAllAgentMetrics();
+      document.getElementById('status').innerHTML = `
+        <h3 class="font-semibold mb-2">Logs Added Successfully!</h3>
+        <p class="text-sm text-gray-600">Added ${agents.length} agents with test data.</p>
+        <p class="text-sm text-gray-600 mt-2">Check the <a href="/admin/agent-metrics" class="text-blue-600 hover:underline">Metrics Dashboard</a> to see the results.</p>
+        <div class="mt-4">
+          <h4 class="font-semibold mb-2">Current Metrics:</h4>
+          <ul class="text-sm space-y-1">
+            ${metrics.map(m => `
+              <li class="${m.successRate >= 80 ? 'text-green-600' : 'text-red-600'}">
+                ${m.agentName}: ${m.successCount}/${m.totalCalls} (${m.successRate.toFixed(1)}%)
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      `;
+    }
+
+    function clearTestLogs() {
+      logger.clearLogs();
+      document.getElementById('status').innerHTML = `
+        <p class="text-gray-600">All logs cleared. The dashboard should now show "No agent metrics available yet".</p>
+      `;
+    }
+
+    // Expose functions to window
+    window.addTestLogs = addTestLogs;
+    window.clearTestLogs = clearTestLogs;
+  </script>
+</body>
+</html>

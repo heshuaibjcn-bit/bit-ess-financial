@@ -49,6 +49,40 @@ class AgentCommunicationLogger {
   private logs: CommunicationLog[] = [];
   private listeners: Set<(logs: CommunicationLog[]) => void> = new Set();
   private maxLogs = 1000; // 最多保存1000条日志
+  private readonly STORAGE_KEY = 'agent_communication_logs';
+
+  constructor() {
+    // Load logs from localStorage on initialization
+    this.loadFromStorage();
+  }
+
+  /**
+   * Load logs from localStorage
+   */
+  private loadFromStorage(): void {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        this.logs = JSON.parse(stored);
+      }
+    } catch (error) {
+      console.warn('Failed to load logs from storage:', error);
+      this.logs = [];
+    }
+  }
+
+  /**
+   * Save logs to localStorage
+   */
+  private saveToStorage(): void {
+    try {
+      // Keep only last maxLogs entries
+      const toStore = this.logs.slice(-this.maxLogs);
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(toStore));
+    } catch (error) {
+      console.warn('Failed to save logs to storage:', error);
+    }
+  }
 
   /**
    * 记录API请求
@@ -156,6 +190,9 @@ class AgentCommunicationLogger {
       this.logs = this.logs.slice(0, this.maxLogs);
     }
 
+    // Save to localStorage for cross-context sharing
+    this.saveToStorage();
+
     // 通知监听器
     this.notifyListeners();
   }
@@ -246,6 +283,7 @@ class AgentCommunicationLogger {
    */
   clearLogs() {
     this.logs = [];
+    localStorage.removeItem(this.STORAGE_KEY);
     this.notifyListeners();
   }
 

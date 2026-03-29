@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Test Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #3498db;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .status-running { color: #f59e0b; }
+    .status-success { color: #10b981; }
+    .status-failed { color: #ef4444; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-8">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold text-gray-900 mb-2">NanoClaw Agent Test Dashboard</h1>
+    <p class="text-gray-600 mb-8">Test all 7 agents to verify functionality</p>
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-4 gap-4 mb-8">
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-2xl font-bold text-gray-900" id="totalTests">0</div>
+        <div class="text-sm text-gray-600">Total Tests</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-2xl font-bold text-green-600" id="passedTests">0</div>
+        <div class="text-sm text-gray-600">Passed</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-2xl font-bold text-red-600" id="failedTests">0</div>
+        <div class="text-sm text-gray-600">Failed</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <div class="text-2xl font-bold text-blue-600" id="successRate">0%</div>
+        <div class="text-sm text-gray-600">Success Rate</div>
+      </div>
+    </div>
+
+    <!-- Test Button -->
+    <div class="mb-8">
+      <button
+        id="runAllTests"
+        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg shadow transition disabled:opacity-50 disabled:cursor-not-allowed"
+        onclick="runAllTests()"
+      >
+        Run All Agent Tests
+      </button>
+    </div>
+
+    <!-- Test Results -->
+    <div class="space-y-4" id="testResults">
+      <!-- Results will be inserted here -->
+    </div>
+  </div>
+
+  <script type="module">
+    const AGENTS = [
+      {
+        name: 'PolicyUpdateAgent',
+        displayName: 'Policy Update Agent',
+        description: 'Tests policy monitoring with sample sources',
+        input: {
+          sources: ['https://www.ndrc.gov.cn', 'https://www.nea.gov.cn'],
+          checkInterval: 24,
+          forceUpdate: true
+        }
+      },
+      {
+        name: 'TariffUpdateAgent',
+        displayName: 'Tariff Update Agent',
+        description: 'Tests tariff monitoring for multiple provinces',
+        input: {
+          provinces: ['广东', '浙江', '江苏'],
+          checkLatest: true,
+          compareWithPrevious: false
+        }
+      },
+      {
+        name: 'DueDiligenceAgent',
+        displayName: 'Due Diligence Agent',
+        description: 'Tests company due diligence for Tencent',
+        input: {
+          companyName: '腾讯科技有限公司',
+          projectType: '储能',
+          investmentAmount: 50000000
+        }
+      },
+      {
+        name: 'SentimentAnalysisAgent',
+        displayName: 'Sentiment Analysis Agent',
+        description: 'Tests sentiment analysis for energy storage industry',
+        input: {
+          query: '储能行业 市场前景',
+          sources: ['news', 'social', 'reports'],
+          dateRange: { start: '2025-01-01', end: '2025-12-31' }
+        }
+      },
+      {
+        name: 'TechnicalFeasibilityAgent',
+        displayName: 'Technical Feasibility Agent',
+        description: 'Tests technical feasibility assessment',
+        input: {
+          projectName: '测试储能项目',
+          location: { province: '广东', city: '深圳' },
+          systemConfig: {
+            capacity: 10,
+            powerRating: 5,
+            batteryType: '锂离子电池',
+            dischargeDuration: 2
+          },
+          gridConstraints: {
+            maxChargePower: 5,
+            maxDischargePower: 5,
+            dailyCycles: 2
+          }
+        }
+      },
+      {
+        name: 'FinancialFeasibilityAgent',
+        displayName: 'Financial Feasibility Agent',
+        description: 'Tests financial feasibility analysis',
+        input: {
+          projectName: '测试储能项目',
+          initialInvestment: 50000000,
+          operatingCosts: {
+            annualMaintenance: 500000,
+            electricityCost: 0.5,
+            laborCost: 200000
+          },
+          revenueStreams: {
+            arbitrageRevenue: 8000000,
+            capacityRevenue: 2000000,
+            ancillaryServicesRevenue: 1000000
+          },
+          financialParameters: {
+            projectLifetime: 10,
+            discountRate: 0.08,
+            electricityPriceEscalation: 0.02
+          }
+        }
+      },
+      {
+        name: 'ReportGenerationAgent',
+        displayName: 'Report Generation Agent',
+        description: 'Tests investment report generation',
+        input: {
+          reportType: 'investment',
+          projectName: '测试储能项目',
+          data: {
+            policy: { summary: '政策支持良好', risk: 'low' },
+            tariff: { peakValleySpread: 0.8, arbitragePotential: 'high' },
+            dueDiligence: { companyRisk: 'low', creditScore: 85 },
+            sentiment: { overallSentiment: 'positive', trend: 'growing' },
+            technical: { feasibility: 'high', constraints: [] },
+            financial: { irr: 0.15, npv: 25000000, paybackPeriod: 6.5 }
+          }
+        }
+      }
+    ];
+
+    let testResults = [];
+    let isRunning = false;
+
+    function createTestCard(agent) {
+      return `
+        <div id="card-${agent.name}" class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">${agent.displayName}</h3>
+              <p class="text-sm text-gray-600">${agent.description}</p>
+            </div>
+            <div id="status-${agent.name}" class="text-gray-400">Waiting...</div>
+          </div>
+          <div id="result-${agent.name}" class="hidden">
+            <div class="border-t pt-4 mt-4">
+              <div class="text-sm">
+                <div class="mb-2">
+                  <span class="font-semibold">Duration:</span>
+                  <span id="duration-${agent.name}">-</span>
+                </div>
+                <div class="mb-2">
+                  <span class="font-semibold">Input:</span>
+                  <pre class="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto">${JSON.stringify(agent.input, null, 2)}</pre>
+                </div>
+                <div>
+                  <span class="font-semibold">Output:</span>
+                  <pre id="output-${agent.name}" class="bg-gray-100 p-2 rounded mt-1 text-xs overflow-x-auto max-h-40 overflow-y-auto">-</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateStatus(agentName, status, message = '') {
+      const statusEl = document.getElementById(`status-${agentName}`);
+      statusEl.className = `status-${status}`;
+      statusEl.textContent = message || (status === 'running' ? 'Running...' : status === 'success' ? '✓ Passed' : '✗ Failed');
+
+      if (status !== 'running') {
+        document.getElementById(`result-${agentName}`).classList.remove('hidden');
+      }
+    }
+
+    function updateSummary() {
+      const total = testResults.length;
+      const passed = testResults.filter(r => r.status === 'success').length;
+      const failed = testResults.filter(r => r.status === 'failed').length;
+      const rate = total > 0 ? ((passed / total) * 100).toFixed(1) : 0;
+
+      document.getElementById('totalTests').textContent = total;
+      document.getElementById('passedTests').textContent = passed;
+      document.getElementById('failedTests').textContent = failed;
+      document.getElementById('successRate').textContent = `${rate}%`;
+    }
+
+    async function testAgent(agent) {
+      const startTime = Date.now();
+      updateStatus(agent.name, 'running');
+
+      try {
+        // Import the agent class
+        const { [agent.name]: AgentClass } = await import('/src/services/agents/index.js');
+
+        // Create instance and execute
+        const agentInstance = new AgentClass();
+        const result = await agentInstance.execute(agent.input);
+
+        const duration = Date.now() - startTime;
+
+        updateStatus(agent.name, 'success');
+        document.getElementById(`duration-${agent.name}`).textContent = `${duration}ms`;
+        document.getElementById(`output-${agent.name}`).textContent =
+          JSON.stringify(result, null, 2).substring(0, 1000) + '...';
+
+        testResults.push({
+          agent: agent.name,
+          status: 'success',
+          duration,
+          result
+        });
+      } catch (error) {
+        const duration = Date.now() - startTime;
+
+        updateStatus(agent.name, 'failed');
+        document.getElementById(`duration-${agent.name}`).textContent = `${duration}ms`;
+        document.getElementById(`output-${agent.name}`).textContent = `Error: ${error.message}\n\n${error.stack}`;
+
+        testResults.push({
+          agent: agent.name,
+          status: 'failed',
+          duration,
+          error: error.message
+        });
+      }
+
+      updateSummary();
+    }
+
+    async function runAllTests() {
+      if (isRunning) return;
+
+      isRunning = true;
+      const button = document.getElementById('runAllTests');
+      button.disabled = true;
+      button.textContent = 'Running Tests...';
+
+      testResults = [];
+
+      for (const agent of AGENTS) {
+        await testAgent(agent);
+        await new Promise(resolve => setTimeout(resolve, 500)); // Small delay between tests
+      }
+
+      isRunning = false;
+      button.disabled = false;
+      button.textContent = 'Run All Agent Tests';
+
+      console.log('Test Results:', testResults);
+    }
+
+    // Initialize
+    window.testResults = testResults;
+    window.runAllTests = runAllTests;
+
+    // Render test cards
+    const container = document.getElementById('testResults');
+    AGENTS.forEach(agent => {
+      container.innerHTML += createTestCard(agent);
+    });
+  </script>
+</body>
+</html>
