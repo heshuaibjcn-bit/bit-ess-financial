@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API Configuration System Test</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .status-ready { background-color: #dcfce7; border-color: #22c55e; }
+    .status-not-ready { background-color: #fef9c3; border-color: #eab308; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-8">
+  <div class="max-w-4xl mx-auto">
+    <div class="mb-8 text-center">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">⚙️ API Configuration System Test</h1>
+      <p class="text-gray-600">Test GLM API key configuration and settings persistence</p>
+    </div>
+
+    <!-- Test Results -->
+    <div id="results" class="space-y-4">
+      <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">Test Suite</h2>
+        <div id="test-list" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- Settings Manager Test -->
+    <div class="bg-white rounded-lg shadow p-6 mt-6">
+      <h2 class="text-xl font-semibold mb-4">Settings Manager Test</h2>
+      <div class="space-y-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Test API Key
+          </label>
+          <input
+            type="text"
+            id="testApiKey"
+            placeholder="Enter a test API key (min 20 chars)"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2"
+          />
+        </div>
+        <div class="flex gap-3">
+          <button
+            onclick="testSettingsManager()"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg"
+          >
+            Test Settings Manager
+          </button>
+          <button
+            onclick="clearSettings()"
+            class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg"
+          >
+            Clear Settings
+          </button>
+          <button
+            onclick="exportSettings()"
+            class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg"
+          >
+            Export Settings
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Current Settings Display -->
+    <div class="bg-white rounded-lg shadow p-6 mt-6">
+      <h2 class="text-xl font-semibold mb-4">Current Settings</h2>
+      <pre id="settingsDisplay" class="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">
+{
+  "glm": {
+    "apiKey": "",
+    "model": "glm-4-turbo",
+    "enabled": false
+  }
+}
+      </pre>
+    </div>
+
+    <!-- Validation Test -->
+    <div class="bg-white rounded-lg shadow p-6 mt-6">
+      <h2 class="text-xl font-semibold mb-4">API Key Validation Tests</h2>
+      <div id="validationTests" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    // Import SettingsManager from the source
+    import { getSettingsManager } from '/src/config/Settings.ts';
+
+    const settingsManager = getSettingsManager();
+    let testResults = [];
+
+    function logTest(name, passed, message) {
+      testResults.push({ name, passed, message });
+      updateTestDisplay();
+    }
+
+    function updateTestDisplay() {
+      const testList = document.getElementById('test-list');
+      testList.innerHTML = testResults.map(test => `
+        <div class="flex items-center justify-between p-3 rounded-lg border-2 ${
+          test.passed ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+        }">
+          <div class="flex items-center">
+            <span class="text-2xl mr-3">${test.passed ? '✅' : '❌'}</span>
+            <span class="font-medium">${test.name}</span>
+          </div>
+          <span class="text-sm text-gray-600">${test.message}</span>
+        </div>
+      `).join('');
+    }
+
+    function updateSettingsDisplay() {
+      const settings = settingsManager.getAllSettings();
+      const display = document.getElementById('settingsDisplay');
+      display.textContent = JSON.stringify(settings, null, 2);
+    }
+
+    function runValidationTests() {
+      const validationDiv = document.getElementById('validationTests');
+
+      const tests = [
+        { key: '', expected: false, name: 'Empty key' },
+        { key: 'short', expected: false, name: 'Too short' },
+        { key: 'a'.repeat(20), expected: true, name: 'Valid length (20 chars)' },
+        { key: 'test-api-key-123456789012345', expected: true, name: 'Valid key format' },
+        { key: 'sk-' + 'a'.repeat(40), expected: true, name: 'Long valid key' }
+      ];
+
+      validationDiv.innerHTML = tests.map(test => {
+        const result = settingsManager.validateApiKey(test.key);
+        const passed = result.valid === test.expected;
+        return `
+          <div class="flex items-center justify-between p-3 rounded-lg border-2 ${
+            passed ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+          }">
+            <div>
+              <span class="font-medium">${test.name}</span>
+              <div class="text-sm text-gray-600 mt-1">
+                Key: "${test.key.substring(0, 15)}${test.key.length > 15 ? '...' : ''}"
+              </div>
+            </div>
+            <div class="text-right">
+              <div class="font-semibold ${passed ? 'text-green-700' : 'text-red-700'}">
+                ${passed ? 'PASS' : 'FAIL'}
+              </div>
+              <div class="text-sm text-gray-600">
+                Expected: ${test.expected ? 'valid' : 'invalid'} |
+                Got: ${result.valid ? 'valid' : 'invalid'}
+              </div>
+              <div class="text-xs text-gray-500 mt-1">${result.message}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Test SettingsManager functionality
+    window.testSettingsManager = async () => {
+      testResults = [];
+      const testKey = document.getElementById('testApiKey').value;
+
+      // Test 1: SettingsManager instance
+      logTest(
+        'SettingsManager instantiated',
+        settingsManager !== null,
+        'getSettingsManager() returns instance'
+      );
+
+      // Test 2: Get all settings
+      const allSettings = settingsManager.getAllSettings();
+      logTest(
+        'Get all settings',
+        allSettings && typeof allSettings === 'object',
+        'getAllSettings() returns object'
+      );
+
+      // Test 3: Get GLM setting
+      const glmSetting = settingsManager.getSetting('glm');
+      logTest(
+        'Get GLM setting',
+        glmSetting && typeof glmSetting.apiKey === 'string',
+        'getSetting("glm") returns GLM config'
+      );
+
+      // Test 4: Update API key
+      if (testKey) {
+        settingsManager.updateGLMApiKey(testKey);
+        const updated = settingsManager.getSetting('glm');
+        logTest(
+          'Update API key',
+          updated.apiKey === testKey,
+          `API key updated to "${testKey.substring(0, 10)}..."`
+        );
+      }
+
+      // Test 5: Check if configured
+      const isConfigured = settingsManager.isGLMConfigured();
+      logTest(
+        'Check configuration status',
+        typeof isConfigured === 'boolean',
+        `isGLMConfigured() = ${isConfigured}`
+      );
+
+      // Test 6: Persistence
+      const beforeClear = settingsManager.getSetting('glm');
+      settingsManager.updateSettings({ glm: { ...beforeClear, model: 'glm-4' } });
+      const afterUpdate = settingsManager.getSetting('glm');
+      logTest(
+        'Settings persistence',
+        afterUpdate.model === 'glm-4',
+        'Settings persist to localStorage'
+      );
+
+      updateSettingsDisplay();
+    };
+
+    // Clear all settings
+    window.clearSettings = () => {
+      if (confirm('This will clear all settings. Continue?')) {
+        settingsManager.resetToDefaults();
+        updateSettingsDisplay();
+        alert('Settings cleared to defaults');
+      }
+    };
+
+    // Export settings
+    window.exportSettings = () => {
+      const settings = settingsManager.exportSettings();
+      const blob = new Blob([settings], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `settings-${new Date().toISOString().split('T')[0]}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    };
+
+    // Initialize
+    updateSettingsDisplay();
+    runValidationTests();
+
+    // Auto-run basic tests
+    setTimeout(() => {
+      logTest(
+        'Settings persistence loaded',
+        localStorage.getItem('ess_financial_settings') !== null,
+        'Settings loaded from localStorage'
+      );
+    }, 100);
+  </script>
+</body>
+</html>

@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCloudProjectStore } from '@/stores/cloudProjectStore';
 import { useToast } from './ui/Toast';
 import { FullPageLoading } from './ui';
+import { APIConfig } from './SettingsConfig';
 
 /**
  * 存储模式类型
@@ -262,6 +263,11 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* API Configuration */}
+        <APIConfig onUpdate={() => {
+          // Refresh settings when API config changes
+        }} />
 
         {/* Data Management */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
