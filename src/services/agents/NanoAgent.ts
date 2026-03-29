@@ -14,6 +14,87 @@
 import { getCommunicationLogger } from './AgentCommunicationLogger';
 
 /**
+ * Rate limiter using token bucket algorithm
+ * Prevents API quota exhaustion and manages request rate
+ */
+export class RateLimiter {
+  private tokens: number;
+  private lastRefill: number;
+  private readonly capacity: number;
+  private readonly refillRate: number; // tokens per second
+  private readonly refillInterval: number; // milliseconds
+
+  constructor(capacity: number, refillRate: number) {
+    this.capacity = capacity;
+    this.refillRate = refillRate;
+    this.refillInterval = 1000; // Refill every second
+    this.tokens = capacity;
+    this.lastRefill = Date.now();
+  }
+
+  /**
+   * Refill tokens based on time elapsed
+   */
+  private refill(): void {
+    const now = Date.now();
+    const elapsed = now - this.lastRefill;
+
+    if (elapsed >= this.refillInterval) {
+      const refillAmount = Math.floor(elapsed / this.refillInterval) * this.refillRate;
+      this.tokens = Math.min(this.capacity, this.tokens + refillAmount);
+      this.lastRefill = now;
+    }
+  }
+
+  /**
+   * Check if request is allowed (consumes token if available)
+   */
+  tryConsume(tokens = 1): boolean {
+    this.refill();
+
+    if (this.tokens >= tokens) {
+      this.tokens -= tokens;
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Get current token count
+   */
+  getAvailableTokens(): number {
+    this.refill();
+    return this.tokens;
+  }
+
+  /**
+   * Wait until tokens are available
+   */
+  async waitForAvailability(tokens = 1): Promise<void> {
+    while (!this.tryConsume(tokens)) {
+      const waitTime = Math.ceil((tokens - this.tokens) / this.refillRate * 1000);
+      console.log(`Rate limit: waiting ${waitTime}ms for ${tokens} tokens`);
+      await new Promise(resolve => setTimeout(resolve, Math.min(waitTime, 5000)));
+    }
+  }
+
+  /**
+   * Get rate limiter statistics
+   */
+  getStats() {
+    this.refill();
+    return {
+      capacity: this.capacity,
+      available: this.tokens,
+      used: this.capacity - this.tokens,
+      utilizationPercent: ((this.capacity - this.tokens) / this.capacity) * 100,
+      refillRate: this.refillRate
+    };
+  }
+}
+
+/**
  * Retry configuration for API calls
  */
 export interface RetryConfig {
@@ -55,12 +136,24 @@ class GLMClient {
   private agentType: string;
   private agentName: string;
   private retryConfig: RetryConfig;
+  private rateLimiter?: RateLimiter;
 
-  constructor(apiKey: string, agentType: string, agentName: string, retryConfig?: Partial<RetryConfig>) {
+  constructor(
+    apiKey: string,
+    agentType: string,
+    agentName: string,
+    retryConfig?: Partial<RetryConfig>,
+    rateLimit?: { capacity: number; refillRate: number }
+  ) {
     this.apiKey = apiKey;
     this.agentType = agentType;
     this.agentName = agentName;
     this.retryConfig = { ...DEFAULT_RETRY_CONFIG, ...retryConfig };
+
+    // Initialize rate limiter if config provided
+    if (rateLimit) {
+      this.rateLimiter = new RateLimiter(rateLimit.capacity, rateLimit.refillRate);
+    }
   }
 
   /**
@@ -189,9 +282,16 @@ class GLMClient {
       prompt: `${params.system}\n\n${prompt}`,
       requestId,
       metadata: {
-        retryConfig: this.retryConfig
+        retryConfig: this.retryConfig,
+        rateLimit: this.rateLimiter ? this.rateLimiter.getStats() : undefined
       }
     });
+
+    // Check rate limit before making request
+    if (this.rateLimiter) {
+      await this.rateLimiter.waitForAvailability(1);
+      console.log(`[${this.agentName}] Rate limit check passed, proceeding with API call`);
+    }
 
     // Execute with retry logic
     const result = await this.executeWithRetry(async () => {

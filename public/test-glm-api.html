@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLM-5 Turbo API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #1f2937;
+            color: #e5e7eb;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .status {
+            padding: 8px 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .loading.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 GLM-5 Turbo API 测试</h1>
+
+        <div class="test-section">
+            <h2>🔑 API配置</h2>
+            <input type="password" id="apiKey" placeholder="请输入智谱GLM API密钥 (sk-...)">
+            <button onclick="testAPI()">测试API连接</button>
+            <button onclick="runDiagnosis()">完整诊断</button>
+            <button onclick="saveKey()">保存密钥到本地</button>
+            <div id="apiStatus" class="status info">未配置API密钥</div>
+        </div>
+
+        <div class="test-section">
+            <h2>💬 测试对话</h2>
+            <input type="text" id="testPrompt" placeholder="输入测试问题..." value="你好，请简单介绍一下你自己">
+            <button onclick="sendChat()">发送测试消息</button>
+            <button onclick="testTariffQuery()">测试电价查询</button>
+            <button onclick="testPolicyAnalysis()">测试政策分析</button>
+            <button onclick="debugResponse()">🔍 调试响应结构</button>
+        </div>
+
+        <div class="loading" id="loading">
+            <p>⏳ 正在请求GLM-5 Turbo API...</p>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 测试结果</h2>
+            <div id="result" class="result">等待测试...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
+
+        // 检查本地存储的API密钥
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedKey = localStorage.getItem('glm_api_key');
+            if (savedKey) {
+                document.getElementById('apiKey').value = savedKey;
+                updateStatus('API密钥已从本地存储加载', 'success');
+            }
+        });
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('apiStatus');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('active', show);
+        }
+
+        function saveKey() {
+            const key = document.getElementById('apiKey').value.trim();
+            if (!key) {
+                updateStatus('请输入API密钥', 'error');
+                return;
+            }
+            localStorage.setItem('glm_api_key', key);
+            updateStatus('API密钥已保存到本地存储', 'success');
+        }
+
+        async function testAPI() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                updateStatus('请输入API密钥', 'error');
+                return;
+            }
+
+            showLoading(true);
+            updateStatus('正在测试API连接...', 'info');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'glm-5-turbo',
+                        messages: [
+                            { role: 'system', content: '你是一个测试助手' },
+                            { role: 'user', content: '你好' }
+                        ],
+                        max_tokens: 50,
+                        temperature: 0.3
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API错误: ${response.status} - ${JSON.stringify(errorData)}`);
+                }
+
+                const data = await response.json();
+
+                // 🔍 调试：显示原始响应
+                console.log('=== API测试响应 ===');
+                console.log('完整响应:', JSON.stringify(data, null, 2));
+                console.log('choices:', data.choices);
+                console.log('content:', data.choices?.[0]?.message?.content);
+                console.log('==================');
+
+                const rawContent = data.choices?.[0]?.message?.content;
+                const reply = rawContent !== undefined && rawContent !== null ? rawContent : '⚠️ API未返回content字段';
+
+                updateStatus('✅ API连接成功！', 'success');
+
+                let resultText = `✅ API测试成功！\n\n`;
+                resultText += `回复内容: ${reply}\n\n`;
+                resultText += `完整响应数据:\n${JSON.stringify(data, null, 2)}\n\n`;
+
+                if (rawContent === '') {
+                    resultText += `🔍 诊断: API返回空字符串\n可能原因: max_tokens设置过小或API服务问题`;
+                } else if (rawContent === undefined) {
+                    resultText += `🔍 诊断: 响应结构异常\ncontent字段不存在，可能是API格式问题`;
+                }
+
+                document.getElementById('result').textContent = resultText;
+
+            } catch (error) {
+                updateStatus(`❌ API连接失败: ${error.message}`, 'error');
+                document.getElementById('result').textContent = `❌ 错误详情:\n${error.message}`;
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function sendChat() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const prompt = document.getElementById('testPrompt').value.trim();
+
+            if (!apiKey) {
+                updateStatus('请先配置API密钥', 'error');
+                return;
+            }
+            if (!prompt) {
+                updateStatus('请输入测试问题', 'error');
+                return;
+            }
+
+            showLoading(true);
+            updateStatus('正在发送消息...', 'info');
+
+            try {
+                const startTime = Date.now();
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'glm-5-turbo',
+                        messages: [
+                            { role: 'system', content: '你是一个储能投资顾问助手' },
+                            { role: 'user', content: prompt }
+                        ],
+                        max_tokens: 500,
+                        temperature: 0.7
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const duration = Date.now() - startTime;
+
+                // 🔍 调试：显示原始API响应结构
+                console.log('=== GLM API 原始响应 ===');
+                console.log('HTTP状态:', response.status);
+                console.log('响应数据结构:', JSON.stringify(data, null, 2));
+                console.log('choices存在?', !!data.choices);
+                console.log('choices长度?', data.choices?.length);
+                console.log('choices[0]?', data.choices?.[0]);
+                console.log('message存在?', !!data.choices?.[0]?.message);
+                console.log('content值?', data.choices?.[0]?.message?.content);
+                console.log('content类型?', typeof data.choices?.[0]?.message?.content);
+                console.log('=========================');
+
+                // 提取回复内容，保留空字符串以区分真正的无回复
+                const rawContent = data.choices?.[0]?.message?.content;
+                const reply = rawContent !== undefined && rawContent !== null ? rawContent : '⚠️ API未返回content字段';
+
+                if (rawContent === '') {
+                    console.warn('⚠️ API返回了空字符串！');
+                }
+                if (rawContent === undefined) {
+                    console.warn('⚠️ API响应中缺少content字段！');
+                }
+
+                const tokens = data.usage || {};
+
+                // 🔍 详细的回复质量分析
+                let qualityReport = '';
+                if (reply === '⚠️ API未返回content字段') {
+                    qualityReport = '\n\n🔍 诊断: API响应结构异常\n可能原因:\n- API版本不匹配\n- 响应格式已更改\n- 权限不足导致部分字段缺失';
+                } else if (reply === '') {
+                    qualityReport = '\n\n🔍 诊断: API返回了空内容\n可能原因:\n- API服务暂时不可用\n- 触发了内容过滤机制\n- API配额已用完';
+                } else if (reply.length < 10) {
+                    qualityReport = `\n\n🔍 诊断: 回复过短 (${reply.length}字符)\n可能原因:\n- max_tokens设置过小\n- temperature设置导致回复简短`;
+                } else {
+                    const hasChinese = /[\u4e00-\u9fa5]/.test(reply);
+                    qualityReport = `\n\n🔍 回复质量分析:\n- 长度: ${reply.length}字符\n- 包含中文: ${hasChinese ? '是' : '否'}\n- 内容类型: ${typeof reply}`;
+                }
+
+                updateStatus('✅ 消息发送成功！', 'success');
+                document.getElementById('result').textContent =
+                    `✅ 对话测试成功\n\n` +
+                    `⏱️ 响应时间: ${duration}ms\n` +
+                    `📊 Token使用: ${JSON.stringify(tokens)}\n\n` +
+                    `💬 回复内容:\n${reply}\n` +
+                    qualityReport
+            } catch (error) {
+                console.error('=== 发送消息出错 ===');
+                console.error('错误类型:', error.constructor.name);
+                console.error('错误消息:', error.message);
+                console.error('错误堆栈:', error.stack);
+                console.error('==================');
+
+                updateStatus(`❌ 发送失败: ${error.message}`, 'error');
+
+                // 提供详细的错误诊断
+                let errorDetail = `❌ 错误类型: ${error.constructor.name}\n`;
+                errorDetail += `错误消息: ${error.message}\n\n`;
+
+                if (error.message.includes('Failed to fetch')) {
+                    errorDetail += `🔍 诊断: 网络请求失败\n`;
+                    errorDetail += `可能原因:\n`;
+                    errorDetail += `- 网络连接问题\n`;
+                    errorDetail += `- CORS跨域限制\n`;
+                    errorDetail += `- API服务器不可达\n`;
+                    errorDetail += `- 防火墙阻止请求\n`;
+                } else if (error.message.includes('JSON')) {
+                    errorDetail += `🔍 诊断: JSON解析失败\n`;
+                    errorDetail += `可能原因:\n`;
+                    errorDetail += `- API返回了非JSON格式\n`;
+                    errorDetail += `- API返回了错误页面而非JSON\n`;
+                }
+
+                document.getElementById('result').textContent = errorDetail;
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        async function testTariffQuery() {
+            document.getElementById('testPrompt').value = '请分析广东省2024年工商业电价的峰谷价差，以及这对储能项目收益的影响';
+            await sendChat();
+        }
+
+        async function testPolicyAnalysis() {
+            document.getElementById('testPrompt').value = '请分析最新的储能补贴政策，特别是针对工商业储能的支持措施';
+            await sendChat();
+        }
+
+        // 🔍 新增：响应结构调试函数
+        async function debugResponse() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                updateStatus('请先配置API密钥', 'error');
+                return;
+            }
+
+            showLoading(true);
+            updateStatus('正在调试API响应结构...', 'info');
+
+            try {
+                console.log('=== 开始调试API响应结构 ===');
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'glm-5-turbo',
+                        messages: [
+                            { role: 'system', content: '调试助手' },
+                            { role: 'user', content: '你好' }
+                        ],
+                        max_tokens: 100,
+                        temperature: 0.7
+                    })
+                });
+
+                console.log('HTTP状态:', response.status, response.statusText);
+                console.log('响应头:', Object.fromEntries(response.headers.entries()));
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('错误响应:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('完整响应对象:', data);
+                console.log('响应类型:', typeof data);
+                console.log('响应键:', Object.keys(data));
+
+                // 检查响应结构
+                let debugReport = '🔍 API响应结构调试报告\n';
+                debugReport += '='.repeat(50) + '\n\n';
+
+                debugReport += `1. HTTP状态: ${response.status} ${response.statusText}\n`;
+                debugReport += `2. 响应类型: ${typeof data}\n`;
+                debugReport += `3. 响应键: ${Object.keys(data).join(', ')}\n\n`;
+
+                // 检查choices
+                if ('choices' in data) {
+                    debugReport += `4. choices字段: 存在\n`;
+                    debugReport += `   - 类型: ${typeof data.choices}\n`;
+                    debugReport += `   - 是数组: ${Array.isArray(data.choices)}\n`;
+                    debugReport += `   - 长度: ${data.choices?.length || 0}\n\n`;
+
+                    if (data.choices && data.choices.length > 0) {
+                        const choice0 = data.choices[0];
+                        debugReport += `5. choices[0]:\n`;
+                        debugReport += `   - 键: ${Object.keys(choice0).join(', ')}\n`;
+                        debugReport += `   - message字段: ${'message' in choice0 ? '存在' : '不存在'}\n\n`;
+
+                        if ('message' in choice0) {
+                            const message = choice0.message;
+                            debugReport += `6. message对象:\n`;
+                            debugReport += `   - 键: ${Object.keys(message).join(', ')}\n`;
+                            debugReport += `   - content字段: ${'content' in message ? '存在' : '不存在'}\n\n`;
+
+                            if ('content' in message) {
+                                const content = message.content;
+                                debugReport += `7. content值:\n`;
+                                debugReport += `   - 类型: ${typeof content}\n`;
+                                debugReport += `   - 长度: ${content?.length || 0}\n`;
+                                debugReport += `   - 值: ${JSON.stringify(content)}\n`;
+                                debugReport += `   - 是否为空: ${content === '' ? '是' : '否'}\n\n`;
+                            } else {
+                                debugReport += `6. ⚠️ message对象中没有content字段!\n\n`;
+                            }
+                        } else {
+                            debugReport += `5. ⚠️ choices[0]中没有message字段!\n\n`;
+                        }
+                    } else {
+                        debugReport += `5. ⚠️ choices数组为空!\n\n`;
+                    }
+                } else {
+                    debugReport += `4. ⚠️ 响应中没有choices字段!\n`;
+                    debugReport += `   实际键: ${Object.keys(data).join(', ')}\n\n`;
+                }
+
+                // 检查usage
+                if ('usage' in data) {
+                    debugReport += `8. usage字段:\n`;
+                    debugReport += `   ${JSON.stringify(data.usage, null, 2)}\n`;
+                }
+
+                // 总结
+                debugReport += '\n' + '='.repeat(50) + '\n';
+                debugReport += '🎯 诊断结论:\n';
+
+                const hasContent = data?.choices?.[0]?.message?.content !== undefined;
+                if (hasContent) {
+                    const content = data.choices[0].message.content;
+                    if (content === '') {
+                        debugReport += '❌ API返回了空字符串内容\n';
+                        debugReport += '建议: 检查max_tokens设置，或尝试其他模型';
+                    } else if (content.length < 5) {
+                        debugReport += '⚠️ API返回的内容过短\n';
+                        debugReport += `实际内容: "${content}"`;
+                    } else {
+                        debugReport += '✅ 响应结构正常，内容提取成功';
+                    }
+                } else {
+                    debugReport += '❌ API响应结构不符合预期\n';
+                    debugReport += '建议: 检查API文档，确认模型名称和响应格式';
+                }
+
+                console.log(debugReport);
+                document.getElementById('result').textContent = debugReport;
+                updateStatus('调试完成', 'success');
+
+            } catch (error) {
+                console.error('调试出错:', error);
+                document.getElementById('result').textContent = `❌ 调试失败: ${error.message}`;
+                updateStatus('调试失败', 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 新增：完整诊断功能
+        async function runDiagnosis() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                updateStatus('请先配置API密钥', 'error');
+                return;
+            }
+
+            showLoading(true);
+            let diagnosisResult = '🔍 GLM-5 Turbo API 完整诊断报告\n';
+            diagnosisResult += '='.repeat(50) + '\n\n';
+
+            try {
+                // 测试1: 基础连接测试
+                diagnosisResult += '📋 测试1: 基础连接测试\n';
+                diagnosisResult += '-'.repeat(30) + '\n';
+
+                const startTime = Date.now();
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'glm-5-turbo',
+                        messages: [
+                            { role: 'system', content: '你是一个测试助手' },
+                            { role: 'user', content: '你好，请简单介绍一下你自己' }
+                        ],
+                        max_tokens: 100,
+                        temperature: 0.7
+                    })
+                });
+
+                const duration = Date.now() - startTime;
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    diagnosisResult += `❌ HTTP ${response.status}: ${response.statusText}\n`;
+                    diagnosisResult += `错误详情: ${errorText}\n\n`;
+
+                    // 错误分析
+                    diagnosisResult += '🔍 错误分析:\n';
+                    if (response.status === 401) {
+                        diagnosisResult += '原因: API密钥无效或过期\n';
+                        diagnosisResult += '解决方案: 请检查API密钥是否正确，或重新获取密钥\n';
+                    } else if (response.status === 403) {
+                        diagnosisResult += '原因: 权限不足或账户余额不足\n';
+                        diagnosisResult += '解决方案: 请检查智谱AI账户余额和权限设置\n';
+                    } else if (response.status === 429) {
+                        diagnosisResult += '原因: 请求过于频繁（限流）\n';
+                        diagnosisResult += '解决方案: 请稍后再试，或升级API套餐\n';
+                    } else if (response.status === 500) {
+                        diagnosisResult += '原因: 智谱AI服务器内部错误\n';
+                        diagnosisResult += '解决方案: 通常是临时问题，请稍后重试\n';
+                    }
+
+                    updateStatus('❌ API连接失败', 'error');
+                    document.getElementById('result').textContent = diagnosisResult;
+                    showLoading(false);
+                    return;
+                }
+
+                const data = await response.json();
+                const reply = data.choices[0]?.message?.content || '';
+
+                diagnosisResult += `✅ 连接成功！\n`;
+                diagnosisResult += `⏱️  响应时间: ${duration}ms\n`;
+                diagnosisResult += `💬 AI回复: ${reply}\n`;
+                diagnosisResult += `📏 回复长度: ${reply.length} 字符\n\n`;
+
+                // 回复质量分析
+                diagnosisResult += '🔍 回复质量分析:\n';
+                if (reply.length > 20) {
+                    diagnosisResult += '✅ 回复长度正常\n';
+                } else {
+                    diagnosisResult += '⚠️  回复过短，可能有问题\n';
+                }
+
+                if (/[\u4e00-\u9fa5]/.test(reply)) {
+                    diagnosisResult += '✅ 包含中文内容\n';
+                } else {
+                    diagnosisResult += '⚠️  可能不包含中文\n';
+                }
+
+                // Token使用统计
+                if (data.usage) {
+                    diagnosisResult += `\n📊 Token使用统计:\n`;
+                    diagnosisResult += `输入: ${data.usage.prompt_tokens || 0} tokens\n`;
+                    diagnosisResult += `输出: ${data.usage.completion_tokens || 0} tokens\n`;
+                    diagnosisResult += `总计: ${data.usage.total_tokens || 0} tokens\n`;
+                }
+
+                diagnosisResult += '\n';
+
+                // 测试2: 专业问题测试
+                diagnosisResult += '📋 测试2: 储能专业问题测试\n';
+                diagnosisResult += '-'.repeat(30) + '\n';
+
+                const response2 = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'glm-5-turbo',
+                        messages: [
+                            { role: 'system', content: '你是一个专业的储能投资顾问' },
+                            { role: 'user', content: '广东省工商业储能项目的IRR通常在什么范围？请用简短的中文回答，不超过100字。' }
+                        ],
+                        max_tokens: 200,
+                        temperature: 0.7
+                    })
+                });
+
+                if (response2.ok) {
+                    const data2 = await response2.json();
+                    const reply2 = data2.choices[0]?.message?.content || '';
+
+                    diagnosisResult += `✅ 专业问题测试成功\n`;
+                    diagnosisResult += `💬 回复: ${reply2}\n`;
+
+                    // 检查专业术语
+                    const keywords = ['IRR', '投资回报', '储能', '收益率', '%', '百分比', '范围'];
+                    const hasKeywords = keywords.some(keyword => reply2.includes(keyword));
+
+                    diagnosisResult += '\n🔍 专业术语分析:\n';
+                    if (hasKeywords) {
+                        diagnosisResult += '✅ 包含相关术语，回复较专业\n';
+                    } else {
+                        diagnosisResult += '⚠️  可能缺乏专业术语\n';
+                    }
+                } else {
+                    diagnosisResult += `❌ 专业问题测试失败: ${response2.status}\n`;
+                }
+
+                diagnosisResult += '\n';
+
+                // 测试3: 不同模型测试
+                diagnosisResult += '📋 测试3: 模型可用性测试\n';
+                diagnosisResult += '-'.repeat(30) + '\n';
+
+                const models = ['glm-5-turbo', 'glm-4', 'glm-3-turbo'];
+                for (const model of models) {
+                    try {
+                        const response3 = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${apiKey}`
+                            },
+                            body: JSON.stringify({
+                                model: model,
+                                messages: [
+                                    { role: 'user', content: '你好' }
+                                ],
+                                max_tokens: 20
+                            })
+                        });
+
+                        if (response3.ok) {
+                            diagnosisResult += `✅ ${model}: 可用\n`;
+                        } else {
+                            diagnosisResult += `❌ ${model}: 不可用 (HTTP ${response3.status})\n`;
+                        }
+                    } catch (e) {
+                        diagnosisResult += `❌ ${model}: 测试出错\n`;
+                    }
+                }
+
+                // 总结
+                diagnosisResult += '\n' + '='.repeat(50) + '\n';
+                diagnosisResult += '🎯 诊断总结:\n';
+                diagnosisResult += '✅ 基础功能正常，GLM-5 Turbo可以正常使用\n';
+                diagnosisResult += '💡 建议: 您可以正常使用AI智能体功能\n';
+
+                updateStatus('✅ 诊断完成 - API正常', 'success');
+
+            } catch (error) {
+                diagnosisResult += `\n❌ 网络错误: ${error.message}\n`;
+                diagnosisResult += '💡 可能原因:\n';
+                diagnosisResult += '- 网络连接问题\n';
+                diagnosisResult += '- CORS跨域限制\n';
+                diagnosisResult += '- 防火墙阻止\n';
+
+                updateStatus('❌ 诊断失败 - 网络错误', 'error');
+            }
+
+            document.getElementById('result').textContent = diagnosisResult;
+            showLoading(false);
+        }
+    </script>
+</body>
+</html>

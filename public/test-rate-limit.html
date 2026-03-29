@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rate Limiter Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-8">
+  <div class="max-w-3xl mx-auto">
+    <div class="mb-8 text-center">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">⏱️ Rate Limiter Demo</h1>
+      <p class="text-gray-600">Token bucket algorithm for API rate management</p>
+    </div>
+
+    <!-- Configuration -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+      <h3 class="text-lg font-semibold mb-4">Token Bucket Configuration</h3>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Capacity (tokens)</label>
+          <input type="number" id="capacity" value="10" min="1" max="100"
+            class="w-full border border-gray-300 rounded px-3 py-2">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Refill Rate (tokens/sec)</label>
+          <input type="number" id="refillRate" value="2" min="1" max="60"
+            class="w-full border border-gray-300 rounded px-3 py-2">
+        </div>
+      </div>
+      <button id="initBtn" class="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg w-full"
+        onclick="initLimiter()">
+        Initialize Rate Limiter
+      </button>
+    </div>
+
+    <!-- Controls -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+      <div class="grid grid-cols-2 gap-4">
+        <button id="consumeBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg"
+          onclick="consumeToken()" disabled>
+        Consume 1 Token
+      </button>
+        <button id="burstBtn" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-6 rounded-lg"
+          onclick="consumeBurst()" disabled>
+        Consume 5 Tokens
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div id="stats" class="bg-white rounded-lg shadow p-6 mb-8">
+      <h3 class="text-lg font-semibold mb-4">Bucket Statistics</h3>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <div class="text-sm text-gray-600">Available Tokens</div>
+          <div id="available" class="text-3xl font-bold text-blue-600">-</div>
+        </div>
+        <div>
+          <div class="text-sm text-gray-600">Utilization</div>
+          <div id="utilization" class="text-3xl font-bold text-purple-600">-</div>
+        </div>
+      </div>
+      <div class="mt-4">
+        <div class="text-sm text-gray-600 mb-2">Token Level</div>
+        <div class="w-full bg-gray-200 rounded-full h-6 overflow-hidden">
+          <div id="tokenBar" class="h-full bg-blue-500 transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="bg-white rounded-lg shadow p-6">
+      <h3 class="text-lg font-semibold mb-4">Activity Log</h3>
+      <div id="log" class="h-64 overflow-y-auto text-sm font-mono bg-gray-900 text-green-400 p-4 rounded">
+        <div>Ready to initialize...</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    class RateLimiter {
+      constructor(capacity, refillRate) {
+        this.capacity = capacity;
+        this.refillRate = refillRate;
+        this.tokens = capacity;
+        this.lastRefill = Date.now();
+      }
+
+      refill() {
+        const now = Date.now();
+        const elapsed = now - this.lastRefill;
+
+        if (elapsed >= 1000) {
+          const refillAmount = Math.floor(elapsed / 1000) * this.refillRate;
+          this.tokens = Math.min(this.capacity, this.tokens + refillAmount);
+          this.lastRefill = now;
+        }
+      }
+
+      tryConsume(tokens = 1) {
+        this.refill();
+
+        if (this.tokens >= tokens) {
+          this.tokens -= tokens;
+          return { success: true, available: this.tokens };
+        }
+
+        return { success: false, available: this.tokens };
+      }
+
+      getStats() {
+        this.refill();
+        const used = this.capacity - this.tokens;
+        return {
+          capacity: this.capacity,
+          available: this.tokens,
+          used,
+          utilizationPercent: (used / this.capacity) * 100
+        };
+      }
+    }
+
+    let rateLimiter = null;
+
+    function log(message) {
+      const logDiv = document.getElementById('log');
+      const time = new Date().toLocaleTimeString();
+      logDiv.innerHTML += `<div>[${time}] ${message}</div>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function updateStats() {
+      if (!rateLimiter) return;
+
+      const stats = rateLimiter.getStats();
+      document.getElementById('available').textContent = `${stats.available}/${stats.capacity}`;
+      document.getElementById('utilization').textContent = `${stats.utilizationPercent.toFixed(1)}%`;
+      document.getElementById('tokenBar').style.width = `${stats.utilizationPercent}%`;
+    }
+
+    function initLimiter() {
+      const capacity = parseInt(document.getElementById('capacity').value);
+      const refillRate = parseInt(document.getElementById('refillRate').value);
+
+      rateLimiter = new RateLimiter(capacity, refillRate);
+
+      document.getElementById('consumeBtn').disabled = false;
+      document.getElementById('burstBtn').disabled = false;
+      document.getElementById('initBtn').textContent = '✓ Initialized';
+
+      log(`Rate limiter initialized: capacity=${capacity}, refillRate=${refillRate}/sec`);
+      updateStats();
+
+      // Auto-refresh stats every second
+      setInterval(updateStats, 1000);
+    }
+
+    function consumeToken() {
+      if (!rateLimiter) return;
+
+      const result = rateLimiter.tryConsume(1);
+
+      if (result.success) {
+        log(`✓ Consumed 1 token. Available: ${result.available}`);
+      } else {
+        log(`✗ Rate limited! Only ${result.available} tokens available.`);
+      }
+
+      updateStats();
+    }
+
+    function consumeBurst() {
+      if (!rateLimiter) return;
+
+      const result = rateLimiter.tryConsume(5);
+
+      if (result.success) {
+        log(`✓ Consumed 5 tokens. Available: ${result.available}`);
+      } else {
+        log(`✗ Burst failed! Only ${result.available} tokens available (need 5).`);
+      }
+
+      updateStats();
+    }
+  </script>
+</body>
+</html>

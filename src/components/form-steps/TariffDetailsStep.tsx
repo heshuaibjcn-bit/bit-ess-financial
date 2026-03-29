@@ -14,7 +14,6 @@ import { useFormContext } from 'react-hook-form';
 import HourlyTariffChart from '../charts/HourlyTariffChart';
 import { type HourlyPrice, PROVINCE_NAMES, type ElectricityBillComponents } from '../../domain/schemas/ProjectSchema';
 import { getTariffService } from '../../services/tariffDataService';
-import TariffUpdateButton from '../TariffUpdateButton';
 import { type TariffType } from '../../domain/schemas/ProjectSchema';
 import { AIAssistant } from '../AIAssistant';
 
@@ -199,25 +198,6 @@ export const TariffDetailsStep: React.FC = () => {
   }, [province, voltageLevel, setValue]);
 
   /**
-   * 手动更新电价数据后刷新
-   */
-  const handleTariffUpdated = () => {
-    if (province && voltageLevel) {
-      const tariff = tariffService.getTariffByVoltage(province as any, voltageLevel);
-      if (tariff) {
-        setCurrentTariff(tariff);
-        const prices = tariffService.generateHourlyPrices(province as any, voltageLevel);
-        setHourlyPrices(prices);
-
-        setValue('tariffDetail.peakPrice', tariff.peakPrice);
-        setValue('tariffDetail.valleyPrice', tariff.valleyPrice);
-        setValue('tariffDetail.flatPrice', tariff.flatPrice);
-        setValue('tariffDetail.hourlyPrices', prices);
-      }
-    }
-  };
-
-  /**
    * 处理电价类型选择
    */
   const handleTariffTypeChange = (value: TariffType) => {
@@ -273,8 +253,6 @@ export const TariffDetailsStep: React.FC = () => {
               电压等级：{voltageLevel}
             </span>
           )}
-
-          <TariffUpdateButton onUpdated={handleTariffUpdated} />
         </div>
       </div>
 

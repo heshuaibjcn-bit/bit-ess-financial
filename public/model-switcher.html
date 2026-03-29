@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLM模型切换工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .current-model {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border-left: 4px solid #667eea;
+        }
+        .model-selector {
+            margin: 30px 0;
+        }
+        .model-option {
+            display: block;
+            width: 100%;
+            padding: 15px 20px;
+            margin: 10px 0;
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+        }
+        .model-option:hover {
+            border-color: #667eea;
+            background: #f8f9fa;
+        }
+        .model-option.selected {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        .model-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .model-desc {
+            font-size: 14px;
+            color: #666;
+        }
+        .model-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #667eea;
+            color: white;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            width: 100%;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .info-box {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #2196f3;
+        }
+        .info-box h3 {
+            margin-top: 0;
+            color: #1976d2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 GLM模型切换工具</h1>
+        <p class="subtitle">统一管理和切换项目中使用的GLM模型</p>
+
+        <!-- 当前模型状态 -->
+        <div class="current-model">
+            <h3>📊 当前配置</h3>
+            <p><strong>当前使用模型:</strong> <span id="currentModelDisplay">检测中...</span></p>
+            <p><strong>配置位置:</strong></p>
+            <ul id="configLocations" style="color: #666; font-size: 14px;"></ul>
+        </div>
+
+        <!-- 模型选择 -->
+        <div class="model-selector">
+            <h3>🔄 选择要切换的模型</h3>
+
+            <div class="model-option" onclick="selectModel('glm-5-turbo')">
+                <div class="model-name">
+                    GLM-5 Turbo
+                    <span class="model-badge">推荐</span>
+                </div>
+                <div class="model-desc">最新版本，性能最优，支持8K上下文</div>
+            </div>
+
+            <div class="model-option" onclick="selectModel('glm-4-plus')">
+                <div class="model-name">GLM-4 Plus</div>
+                <div class="model-desc">增强版本，平衡性能和成本</div>
+            </div>
+
+            <div class="model-option" onclick="selectModel('glm-4')">
+                <div class="model-name">GLM-4</div>
+                <div class="model-desc">标准版本，稳定可靠</div>
+            </div>
+
+            <div class="model-option" onclick="selectModel('glm-3-turbo')">
+                <div class="model-name">GLM-3 Turbo</div>
+                <div class="model-desc">高性价比，适合简单任务</div>
+            </div>
+        </div>
+
+        <!-- 信息提示 -->
+        <div class="info-box">
+            <h3>💡 模型说明</h3>
+            <p><strong>GLM-5 Turbo</strong>: 智谱AI最新发布的模型，具有：</p>
+            <ul>
+                <li>✅ 最强的中文理解能力</li>
+                <li>✅ 8K上下文窗口</li>
+                <li>✅ 更快的响应速度</li>
+                <li>✅ 更好的推理能力</li>
+            </ul>
+            <p style="margin-top: 10px; font-size: 14px; color: #666;">
+                当前项目已默认使用 GLM-5 Turbo，您可以通过此工具切换到其他模型进行测试或成本优化。
+            </p>
+        </div>
+
+        <!-- 状态显示 -->
+        <div id="status" class="status info">
+            等待操作...
+        </div>
+
+        <button onclick="applyModel()">✅ 应用选择的模型</button>
+    </div>
+
+    <script>
+        // 可用的GLM模型
+        const MODELS = {
+            'glm-5-turbo': {
+                name: 'GLM-5 Turbo',
+                maxTokens: 8192,
+                description: '最新推荐'
+            },
+            'glm-4-plus': {
+                name: 'GLM-4 Plus',
+                maxTokens: 4096,
+                description: '增强版本'
+            },
+            'glm-4': {
+                name: 'GLM-4',
+                maxTokens: 4096,
+                description: '标准版本'
+            },
+            'glm-3-turbo': {
+                name: 'GLM-3 Turbo',
+                maxTokens: 2048,
+                description: '高性价比'
+            }
+        };
+
+        let selectedModel = 'glm-5-turbo';
+
+        // 检查当前模型配置
+        async function checkCurrentModel() {
+            try {
+                // 从localStorage读取
+                const storedModel = localStorage.getItem('glm_model') || 'glm-5-turbo';
+
+                // 检查项目中的配置
+                const response = await fetch('/src/config/models.ts');
+                const text = await response.text();
+
+                // 简单检查是否包含模型配置
+                const hasModelConfig = text.includes('glm-5-turbo');
+
+                document.getElementById('currentModelDisplay').textContent = MODELS[storedModel]?.name || storedModel;
+                document.getElementById('currentModelDisplay').style.color = '#28a745';
+                document.getElementById('currentModelDisplay').style.fontWeight = 'bold';
+
+                const locations = [
+                    'src/config/models.ts - 统一模型配置',
+                    'src/services/agents/ - 7个智能体文件',
+                    'public/test-glm-api.html - API测试页面',
+                    'test-console.html - 控制台测试页面'
+                ];
+
+                const locationsList = document.getElementById('configLocations');
+                locationsList.innerHTML = locations.map(loc => `<li>${loc}</li>`).join('');
+
+                // 高亮当前选中的模型
+                highlightCurrentModel(storedModel);
+
+            } catch (error) {
+                document.getElementById('currentModelDisplay').textContent = '无法检测';
+                console.error('检查模型配置失败:', error);
+            }
+        }
+
+        function highlightCurrentModel(model) {
+            // 移除所有选中状态
+            document.querySelectorAll('.model-option').forEach(el => {
+                el.classList.remove('selected');
+            });
+
+            // 选中当前模型
+            const currentOption = document.querySelector(`.model-option[onclick*="'${model}'"]`);
+            if (currentOption) {
+                currentOption.classList.add('selected');
+            }
+
+            selectedModel = model;
+        }
+
+        function selectModel(model) {
+            highlightCurrentModel(model);
+
+            const modelInfo = MODELS[model];
+            updateStatus(
+                `已选择: ${modelInfo.name} - ${modelInfo.description}`,
+                'info'
+            );
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        async function applyModel() {
+            const modelInfo = MODELS[selectedModel];
+
+            updateStatus(`正在切换到 ${modelInfo.name}...`, 'info');
+
+            try {
+                // 保存到localStorage
+                localStorage.setItem('glm_model', selectedModel);
+
+                // 如果有API配置，测试新模型是否可用
+                const apiKey = localStorage.getItem('glm_api_key');
+                if (apiKey) {
+                    const testResponse = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${apiKey}`
+                        },
+                        body: JSON.stringify({
+                            model: selectedModel,
+                            messages: [
+                                { role: 'user', content: '你好' }
+                            ],
+                            max_tokens: 50
+                        })
+                    });
+
+                    if (testResponse.ok) {
+                        updateStatus(
+                            `✅ 成功切换到 ${modelInfo.name}！\n模型已保存到本地存储，下次访问将自动使用此模型。`,
+                            'success'
+                        );
+                    } else {
+                        const errorData = await testResponse.json();
+                        updateStatus(
+                            `⚠️ 模型已保存，但API测试失败：${errorData.error?.message || '未知错误'}`,
+                            'info'
+                        );
+                    }
+                } else {
+                    updateStatus(
+                        `✅ 模型已保存到本地存储\n（未配置API密钥，无法测试模型可用性）`,
+                        'success'
+                    );
+                }
+
+                // 更新显示
+                document.getElementById('currentModelDisplay').textContent = modelInfo.name;
+
+            } catch (error) {
+                updateStatus(`❌ 切换失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载时检查当前模型
+        window.addEventListener('DOMContentLoaded', () => {
+            checkCurrentModel();
+        });
+    </script>
+</body>
+</html>
