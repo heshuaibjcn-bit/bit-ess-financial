@@ -352,8 +352,6 @@ class GLMClient {
   }
 }
 
-}
-
 export interface AgentMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;

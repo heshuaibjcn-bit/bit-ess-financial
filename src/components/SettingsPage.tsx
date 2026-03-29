@@ -11,7 +11,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCloudProjectStore } from '@/stores/cloudProjectStore';
 import { useToast } from './ui/Toast';
 import { FullPageLoading } from './ui';
-import { APIConfig } from './SettingsConfig';
 
 /**
  * 存储模式类型
@@ -264,11 +263,6 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* API Configuration */}
-        <APIConfig onUpdate={() => {
-          // Refresh settings when API config changes
-        }} />
-
         {/* Data Management */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">
@@ -308,7 +302,7 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         {/* Info */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <h3 className="text-sm font-semibold text-blue-900 mb-2">
             {t('settings.storageInfo', { defaultValue: '关于存储模式' })}
           </h3>
@@ -318,6 +312,22 @@ export const SettingsPage: React.FC = () => {
           <p className="text-sm text-blue-800 mt-2">
             {t('settings.storageInfoTip', { defaultValue: '建议定期导出数据备份，以防数据丢失。' })}
           </p>
+        </div>
+
+        {/* Admin Configuration Link */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <h3 className="text-sm font-semibold text-amber-900 mb-2">
+            🔧 {t('settings.adminConfig', { defaultValue: 'API 和 Agent 配置' })}
+          </h3>
+          <p className="text-sm text-amber-800 mb-2">
+            {t('settings.adminConfigDesc', { defaultValue: 'GLM API 密钥、Claude API 密钥、Agent 系统配置等高级设置已移至管理员界面。' })}
+          </p>
+          <a
+            href="/admin"
+            className="text-sm font-medium text-amber-900 hover:text-amber-700 underline"
+          >
+            {t('settings.goToAdmin', { defaultValue: '前往管理员界面 →' })}
+          </a>
         </div>
       </main>
     </div>

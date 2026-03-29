@@ -17,6 +17,8 @@ import { TariffUpdateAgent } from '../../services/agents/TariffUpdateAgent';
 import { getTariffService } from '../../services/tariffDataService';
 import { getCommunicationLogger, type CommunicationLog } from '../../services/agents/AgentCommunicationLogger';
 import { AgentMetricsDashboard } from './AgentMetricsDashboard';
+import { AdminSettings } from './AdminSettings';
+import { getSettingsManager } from '@/config/Settings';
 import type { AgentTask } from '../../services/agents';
 
 type AgentType =
@@ -101,7 +103,11 @@ export const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'agents' | 'tasks' | 'reports' | 'settings' | 'console' | 'metrics'>('overview');
   const [agents, setAgents] = useState<AgentConfig[]>(AGENTS);
   const [tasks, setTasks] = useState<AgentTask[]>([]);
-  const [apiConfigured, setApiConfigured] = useState(false);
+
+  const settingsManager = getSettingsManager();
+
+  // Helper function to check if API is configured
+  const isApiConfigured = () => settingsManager.isGLMConfigured();
 
   // Tariff update states
   const [isUpdatingTariff, setIsUpdatingTariff] = useState(false);
@@ -129,13 +135,6 @@ export const AdminDashboard: React.FC = () => {
   const agentManager = getAgentManager();
 
   useEffect(() => {
-    // Check if API key is configured
-    const checkApiKey = () => {
-      const key = localStorage.getItem('glm_api_key');
-      setApiConfigured(!!key);
-    };
-    checkApiKey();
-
     // Load tariff auto-update configuration
     const loadTariffConfig = () => {
       const savedConfig = localStorage.getItem('tariff_auto_update_config');
@@ -235,8 +234,8 @@ export const AdminDashboard: React.FC = () => {
   }, [autoUpdateEnabled, nextUpdateTime]);
 
   const handleRunAgent = async (agentId: AgentType) => {
-    if (!apiConfigured) {
-      alert('请先配置智谱GLM API密钥');
+    if (!isApiConfigured()) {
+      alert('请先在设置页面配置智谱GLM API密钥');
       return;
     }
 
@@ -392,8 +391,8 @@ export const AdminDashboard: React.FC = () => {
 
   // Tariff update functions
   const handleTariffUpdate = async () => {
-    if (!apiConfigured) {
-      alert('请先配置智谱GLM API密钥');
+    if (!isApiConfigured()) {
+      alert('请先在设置页面配置智谱GLM API密钥');
       return;
     }
 
@@ -529,41 +528,8 @@ export const AdminDashboard: React.FC = () => {
     setShowScheduleConfig(false);
   };
 
-  const handleConfigureApiKey = () => {
-    const key = prompt('请输入智谱AI GLM API密钥:');
-    if (key) {
-      localStorage.setItem('glm_api_key', key);
-      setApiConfigured(true);
-    }
-  };
-
   const renderOverview = () => (
     <div className="space-y-6">
-      {/* API Configuration Status */}
-      <div className={`p-4 rounded-lg border ${apiConfigured ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <span className="text-2xl">{apiConfigured ? '✅' : '⚠️'}</span>
-            <div>
-              <h3 className={`font-medium ${apiConfigured ? 'text-green-900' : 'text-yellow-900'}`}>
-                智谱GLM API密钥状态
-              </h3>
-              <p className={`text-sm ${apiConfigured ? 'text-green-700' : 'text-yellow-700'}`}>
-                {apiConfigured ? '已配置' : '未配置'}
-              </p>
-            </div>
-          </div>
-          {!apiConfigured && (
-            <button
-              onClick={handleConfigureApiKey}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              配置密钥
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* Agent Status Summary */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h3 className="text-lg font-medium text-gray-900 mb-4">智能体状态概览</h3>
@@ -659,9 +625,9 @@ export const AdminDashboard: React.FC = () => {
               </span>
               <button
                 onClick={() => agent.id === 'tariff' ? handleTariffUpdate() : handleRunAgent(agent.id)}
-                disabled={!apiConfigured || agent.status === 'running' || (agent.id === 'tariff' && isUpdatingTariff)}
+                disabled={!isApiConfigured() || agent.status === 'running' || (agent.id === 'tariff' && isUpdatingTariff)}
                 className={`px-4 py-2 rounded-lg transition ${
-                  !apiConfigured || agent.status === 'running' || (agent.id === 'tariff' && isUpdatingTariff)
+                  !isApiConfigured() || agent.status === 'running' || (agent.id === 'tariff' && isUpdatingTariff)
                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : agent.id === 'tariff'
                     ? 'bg-green-600 text-white hover:bg-green-700'
@@ -1014,9 +980,9 @@ export const AdminDashboard: React.FC = () => {
         </p>
         <button
           onClick={() => handleRunAgent('report')}
-          disabled={!apiConfigured}
+          disabled={!isApiConfigured()}
           className={`px-4 py-2 rounded-lg transition ${
-            !apiConfigured
+            !isApiConfigured()
               ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
               : 'bg-blue-600 text-white hover:bg-blue-700'
           }`}
@@ -1033,86 +999,7 @@ export const AdminDashboard: React.FC = () => {
     </div>
   );
 
-  const renderSettings = () => (
-    <div className="space-y-6">
-      {/* API Configuration */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">API配置</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              智谱GLM API密钥
-            </label>
-            <div className="flex space-x-3">
-              <input
-                type="password"
-                defaultValue={localStorage.getItem('glm_api_key') || ''}
-                placeholder="输入智谱AI的API密钥"
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                readOnly
-              />
-              <button
-                onClick={handleConfigureApiKey}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-              >
-                更新密钥
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              密钥存储在浏览器本地存储中，不会上传到服务器
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Agent Configuration */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">智能体配置</h3>
-        <div className="space-y-3">
-          {agents.map(agent => (
-            <div key={agent.id} className="flex items-center justify-between py-2">
-              <div className="flex items-center space-x-3">
-                <span className="text-xl">{agent.icon}</span>
-                <span className="text-sm font-medium text-gray-900">{agent.name}</span>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={agent.enabled}
-                  onChange={(e) => {
-                    setAgents(prev =>
-                      prev.map(a => a.id === agent.id ? { ...a, enabled: e.target.checked } : a)
-                    );
-                  }}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* System Information */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">系统信息</h3>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-gray-600">NanoClaw版本</span>
-            <span className="font-medium">1.0.0</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">智能体数量</span>
-            <span className="font-medium">{agents.length}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">已完成任务</span>
-            <span className="font-medium">{tasks.filter(t => t.status === 'completed').length}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const renderSettings = () => <AdminSettings />;
 
   const renderConsole = () => {
     const logger = getCommunicationLogger();
