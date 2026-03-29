@@ -9,6 +9,7 @@
  * - Technical feasibility
  * - Financial feasibility
  * - Integrated report generation
+ * - High-performance orchestration
  */
 
 export { NanoAgent, AgentManager, getAgentManager } from './NanoAgent';
@@ -80,3 +81,10 @@ export type {
 
 export { getCommunicationLogger } from './AgentCommunicationLogger';
 export type { CommunicationLog, AgentMetrics } from './AgentCommunicationLogger';
+
+export { AgentOrchestrator, getAgentOrchestrator } from './AgentOrchestrator';
+export type {
+  AgentExecutionConfig,
+  OrchestratorResult,
+  BatchExecutionOptions,
+} from './AgentOrchestrator';

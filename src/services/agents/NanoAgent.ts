@@ -168,6 +168,13 @@ export class NanoAgent {
   protected client: GLMClient | null = null;
   protected config: AgentConfig;
 
+  // Rate limiting state (class-level for all agents)
+  private static rateLimitState: Map<string, {
+    tokens: number;
+    lastReset: number;
+    queue: Array<() => void>;
+  }> = new Map();
+
   constructor(config: AgentConfig) {
     this.config = config;
     this.initializeClient();
@@ -279,6 +286,209 @@ export class NanoAgent {
       error: error.message,
       metadata,
     });
+  }
+
+  /**
+   * Execute an async function with retry logic and exponential backoff
+   * Useful for API calls that might fail temporarily
+   */
+  protected async withRetry<T>(
+    fn: () => Promise<T>,
+    options: {
+      maxRetries?: number;
+      initialDelay?: number;
+      maxDelay?: number;
+      backoffMultiplier?: number;
+      onRetry?: (attempt: number, error: Error) => void;
+    } = {}
+  ): Promise<T> {
+    const {
+      maxRetries = 3,
+      initialDelay = 1000, // 1 second
+      maxDelay = 10000, // 10 seconds
+      backoffMultiplier = 2,
+      onRetry,
+    } = options;
+
+    let lastError: Error | undefined;
+    let delay = initialDelay;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        if (attempt > 0) {
+          this.log('info', `Retry attempt ${attempt}/${maxRetries}`);
+        }
+
+        const result = await fn();
+
+        if (attempt > 0) {
+          this.log('info', `Retry successful on attempt ${attempt}`);
+        }
+
+        return result;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        if (attempt < maxRetries) {
+          this.log(
+            'warn',
+            `Attempt ${attempt + 1} failed: ${lastError.message}. Retrying in ${delay}ms...`
+          );
+
+          // Call retry callback if provided
+          if (onRetry) {
+            onRetry(attempt + 1, lastError);
+          }
+
+          // Wait before retry with exponential backoff
+          await this.sleep(delay);
+
+          // Calculate next delay with exponential backoff
+          delay = Math.min(delay * backoffMultiplier, maxDelay);
+        } else {
+          this.log('error', `All ${maxRetries + 1} attempts failed: ${lastError.message}`);
+        }
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * Sleep utility for retry delays
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Execute with rate limiting
+   * Limits the number of concurrent requests per agent type
+   */
+  protected async withRateLimit<T>(
+    fn: () => Promise<T>,
+    options: {
+      maxConcurrent?: number;
+      windowMs?: number;
+    } = {}
+  ): Promise<T> {
+    const { maxConcurrent = 3, windowMs = 60000 } = options;
+    const agentKey = this.config.name;
+
+    // Get or create rate limit state for this agent type
+    let state = NanoAgent.rateLimitState.get(agentKey);
+    if (!state) {
+      state = {
+        tokens: maxConcurrent,
+        lastReset: Date.now(),
+        queue: [],
+      };
+      NanoAgent.rateLimitState.set(agentKey, state);
+    }
+
+    // Reset tokens if window has expired
+    const now = Date.now();
+    if (now - state.lastReset >= windowMs) {
+      state.tokens = maxConcurrent;
+      state.lastReset = now;
+
+      // Process queued requests
+      const queued = state.queue.splice(0, state.tokens);
+      queued.forEach(resolve => resolve());
+    }
+
+    // Wait for token if rate limited
+    if (state.tokens <= 0) {
+      this.log('warn', `Rate limit reached for ${agentKey}, queuing request`);
+
+      await new Promise<void>(resolve => {
+        state.queue.push(resolve);
+      });
+    }
+
+    // Consume token
+    state.tokens--;
+
+    try {
+      // Execute the function
+      return await fn();
+    } finally {
+      // Return token after execution
+      state.tokens++;
+    }
+  }
+
+  /**
+   * Execute with both retry logic and rate limiting
+   * Combines withRetry and withRateLimit for robust execution
+   */
+  protected async executeWithRetryAndRateLimit<T>(
+    fn: () => Promise<T>,
+    options: {
+      retry?: Parameters<typeof this.withRetry>[1];
+      rateLimit?: Parameters<typeof this.withRateLimit>[1];
+    } = {}
+  ): Promise<T> {
+    return this.withRateLimit(
+      () => this.withRetry(fn, options.retry),
+      options.rateLimit
+    );
+  }
+
+  /**
+   * Get current rate limit status for all agents
+   */
+  static getRateLimitStatus(): Record<string, {
+    available: number;
+    max: number;
+    queued: number;
+  }> {
+    const status: Record<string, any> = {};
+
+    NanoAgent.rateLimitState.forEach((state, key) => {
+      status[key] = {
+        available: state.tokens,
+        max: 3, // Default max concurrent
+        queued: state.queue.length,
+      };
+    });
+
+    return status;
+  }
+
+  /**
+   * Reset rate limit state (useful for testing or recovery)
+   */
+  static resetRateLimits(): void {
+    NanoAgent.rateLimitState.clear();
+  }
+
+  /**
+   * Execute the agent's main task with retry logic
+   * Wraps the execute method with automatic retries
+   */
+  async executeWithRetry(input: any, retryOptions?: Parameters<typeof this.withRetry>[1]): Promise<any> {
+    const startTime = Date.now();
+
+    try {
+      const result = await this.withRetry(
+        async () => this.execute(input),
+        retryOptions
+      );
+
+      const duration = Date.now() - startTime;
+      this.recordSuccess(duration, { retry: true });
+
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.recordFailure(
+        duration,
+        error instanceof Error ? error : new Error(String(error)),
+        { retry: true }
+      );
+      throw error;
+    }
   }
 
   /**
@@ -473,6 +683,83 @@ export class AgentManager {
 
     this.tasks.set(taskId, task);
     return task;
+  }
+
+  /**
+   * Execute multiple tasks in parallel
+   * All tasks must be created first using createTask()
+   */
+  async executeTasksParallel(taskIds: string[]): Promise<AgentTask[]> {
+    this.log(`Executing ${taskIds.length} tasks in parallel`);
+
+    const startTime = Date.now();
+
+    // Execute all tasks in parallel
+    const results = await Promise.all(
+      taskIds.map(taskId => this.executeTask(taskId))
+    );
+
+    const duration = Date.now() - startTime;
+    const successCount = results.filter(t => t.status === 'completed').length;
+
+    this.log(
+      `Parallel execution completed: ${successCount}/${taskIds.length} succeeded in ${duration}ms`
+    );
+
+    return results;
+  }
+
+  /**
+   * Execute multiple agents in parallel with their inputs
+   * Convenience method that creates tasks and executes them in parallel
+   */
+  async executeAgentsParallel(
+    agentInputs: Array<{ type: string; input: any }>
+  ): Promise<AgentTask[]> {
+    this.log(`Creating and executing ${agentInputs.length} agents in parallel`);
+
+    // Create all tasks first
+    const taskIds = agentInputs.map(({ type, input }) => {
+      const task = this.createTask(type, input);
+      return task.id;
+    });
+
+    // Execute all tasks in parallel
+    return this.executeTasksParallel(taskIds);
+  }
+
+  /**
+   * Execute agents in batches with controlled concurrency
+   * Useful for rate limiting or resource management
+   */
+  async executeAgentsBatched(
+    agentInputs: Array<{ type: string; input: any }>,
+    concurrency: number = 3
+  ): Promise<AgentTask[]> {
+    this.log(
+      `Executing ${agentInputs.length} agents in batches of ${concurrency}`
+    );
+
+    const results: AgentTask[] = [];
+    const startTime = Date.now();
+
+    // Process in batches
+    for (let i = 0; i < agentInputs.length; i += concurrency) {
+      const batch = agentInputs.slice(i, i + concurrency);
+      this.log(`Processing batch ${Math.floor(i / concurrency) + 1} (${batch.length} agents)`);
+
+      const batchResults = await this.executeAgentsParallel(batch);
+      results.push(...batchResults);
+    }
+
+    const duration = Date.now() - startTime;
+    const successCount = results.filter(t => t.status === 'completed').length;
+
+    this.log(
+      `Batch execution completed: ${successCount}/${agentInputs.length} succeeded in ${duration}ms`
+    );
+
+    return results;
   }
 
   /**
