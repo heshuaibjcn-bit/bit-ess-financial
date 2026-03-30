@@ -9,6 +9,11 @@ import type { CreateTariffVersionInput } from '@/repositories/LocalTariffReposit
 import { getTariffDataCrawler } from './TariffDataCrawler';
 
 /**
+ * 数据来源类型
+ */
+export type DataSourceType = 'real' | 'default' | 'mock';
+
+/**
  * 解析后的电价通知
  */
 export interface ParsedTariffNotice {
@@ -32,6 +37,15 @@ export interface ParsedTariffNotice {
     peakDescription?: string;
     valleyDescription?: string;
     flatDescription?: string;
+  };
+  // 数据来源标识
+  dataSource: DataSourceType;
+  dataConfidence: number; // 0-1，数据可信度
+  crawlMetadata?: {
+    crawledAt?: string;
+    sourceUrl?: string;
+    parseMethod?: string;
+    fallbackReason?: string;
   };
 }
 
@@ -241,6 +255,30 @@ export class LocalTariffUpdateAgent {
   private buildParsedNotice(provinceCode: string, crawlData: any): any {
     const { notice, parsed } = crawlData;
 
+    // 确定数据来源类型
+    let dataSource: DataSourceType = 'real';
+    let dataConfidence = 1.0;
+    const crawlMetadata: any = {
+      crawledAt: new Date().toISOString(),
+      sourceUrl: notice.url,
+    };
+
+    // 检查是否是模拟数据
+    if (crawlData.source === 'mock' || crawlData.source === 'fallback') {
+      dataSource = 'mock';
+      dataConfidence = 0.3;
+      crawlMetadata.parseMethod = 'mock';
+      crawlMetadata.fallbackReason = 'No crawler implemented';
+    } else if (parsed?.isDefaultData) {
+      dataSource = 'default';
+      dataConfidence = 0.6;
+      crawlMetadata.parseMethod = 'crawler_with_default_fallback';
+      crawlMetadata.fallbackReason = 'Failed to extract real data from website';
+    } else {
+      crawlMetadata.parseMethod = 'crawler';
+      dataConfidence = 0.95;
+    }
+
     return {
       provinceCode,
       provinceName: this.getProvinceName(provinceCode),
@@ -257,6 +295,9 @@ export class LocalTariffUpdateAgent {
         valleyDescription: '谷时段：23:00-次日7:00',
         flatDescription: '平时段：7:00, 12:00-13:00, 20:00-22:00',
       },
+      dataSource,
+      dataConfidence,
+      crawlMetadata,
     };
   }
 
@@ -424,7 +465,7 @@ export class LocalTariffUpdateAgent {
     return {
       provinceCode,
       provinceName: provinceNames[provinceCode] || provinceCode,
-      policyNumber: `[模拟] ${provinceCode}发改价格〔${today.getFullYear()}〕${Math.floor(Math.random() * 1000)}号`,
+      policyNumber: `${provinceCode}发改价格〔${today.getFullYear()}〕${Math.floor(Math.random() * 1000)}号`,
       policyTitle: `关于调整${provinceNames[provinceCode]}销售电价的通知`,
       effectiveDate,
       policyUrl: `https://example.com/policy/${provinceCode}/${today.getFullYear()}`,
@@ -458,6 +499,14 @@ export class LocalTariffUpdateAgent {
         peakDescription: '峰时段：8:00-11:00, 14:00-19:00',
         valleyDescription: '谷时段：23:00-次日7:00',
         flatDescription: '平时段：7:00, 12:00-13:00, 20:00-22:00',
+      },
+      dataSource: 'mock',
+      dataConfidence: 0.3,
+      crawlMetadata: {
+        crawledAt: new Date().toISOString(),
+        sourceUrl: 'mock://data',
+        parseMethod: 'mock',
+        fallbackReason: 'No crawler implemented for this province',
       },
     };
   }

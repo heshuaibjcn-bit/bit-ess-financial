@@ -1,0 +1,185 @@
+# Prometheus Alert Rules for ESS Financial
+
+groups:
+  - name: application
+    interval: 30s
+    rules:
+      # Application health
+      - alert: ApplicationDown
+        expr: up{job="ess-financial-app"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Application is down"
+          description: "Application {{ $labels.instance }} has been down for more than 1 minute"
+
+      # High error rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
+
+      # High latency
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, http_request_duration_seconds) > 1
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High latency detected"
+          description: "P95 latency is {{ $value }}s on {{ $labels.instance }}"
+
+      # Memory usage
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes{job="ess-financial-app"} / 1024 / 1024 / 1024 > 1024
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}MB on {{ $labels.instance }}"
+
+  - name: api
+    interval: 30s
+    rules:
+      # API health
+      - alert: APIDown
+        expr: up{job="ess-financial-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "API is down"
+          description: "API {{ $labels.instance }} has been down for more than 1 minute"
+
+      # Slow database queries
+      - alert: SlowDatabaseQuery
+        expr: histogram_quantile(0.95, db_query_duration_seconds) > 5
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Slow database queries"
+          description: "P95 query duration is {{ $value }}s"
+
+  - name: database
+    interval: 30s
+    rules:
+      # Database connection pool
+      - alert: DatabaseConnectionPoolHigh
+        expr: pg_stat_activity_count{datname="ess_financial"} > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "High database connection pool usage"
+          description: "Connection pool usage is {{ $value }}%"
+
+      # Database replication lag
+      - alert: DatabaseReplicationLag
+        expr: pg_replication_lag_seconds > 30
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "High database replication lag"
+          description: "Replication lag is {{ $value }}s"
+
+      # Database disk usage
+      - alert: DatabaseDiskSpaceHigh
+        expr: pg_database_size_bytes{datname="ess_financial"} / node_filesystem_avail_bytes{mountpoint="/var/lib/postgresql"} > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "High database disk usage"
+          description: "Database disk usage is {{ $value | humanizePercentage }}"
+
+  - name: cache
+    interval: 30s
+    rules:
+      # Redis memory usage
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High Redis memory usage"
+          description: "Redis memory usage is {{ $value | humanizePercentage }}"
+
+      # Redis connection count
+      - alert: RedisConnectionsHigh
+        expr: redis_connected_clients / redis_config_maxclients > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High Redis connection count"
+          description: "Redis connection count is {{ $value | humanizePercentage }}"
+
+  - name: uptime
+    interval: 30s
+    rules:
+      # Site down
+      - alert: SiteDown
+        expr: probe_success == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: sre
+        annotations:
+          summary: "Site is down"
+          description: "Site {{ $labels.instance }} is down"
+
+      # SSL certificate expiring
+      - alert: SSLCertificateExpiring
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 30
+        for: 1h
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate for {{ $labels.instance }} expires in {{ $value }} days"
+
+  - name: security
+    interval: 30s
+    rules:
+      # Failed login attempts
+      - alert: HighFailedLoginRate
+        expr: rate(login_attempts_total{status="failed"}[5m]) / rate(login_attempts_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High rate of failed login attempts"
+          description: "Failed login rate is {{ $value | humanizePercentage }}"
+
+      # Security events
+      - alert: HighSecurityEventRate
+        expr: rate(security_events_total{severity!="low"}[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High rate of security events"
+          description: "Security event rate is {{ $value }}/s"

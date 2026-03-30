@@ -21,7 +21,7 @@ export default defineConfig({
     exclude: ['node_modules/', '**/e2e/**', '**/*.config.ts', '**/*.d.ts'],
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html'],
+      reporter: ['text', 'json', 'html', 'lcov'],
       include: ['src/**/*.{ts,tsx}'],
       exclude: [
         'node_modules/',
@@ -30,7 +30,26 @@ export default defineConfig({
         '**/*.test.tsx',
         '**/*.config.ts',
         '**/*.d.ts',
+        'src/main.tsx',
+        'src/vite-env.d.ts',
       ],
+      thresholds: {
+        statements: 80,
+        branches: 80,
+        functions: 80,
+        lines: 80,
+      },
+      all: true,
+    },
+    testTimeout: 10000,
+    hookTimeout: 10000,
+    teardownTimeout: 10000,
+    isolate: true,
+    bail: 1,
+    onConsoleLog: (log) => {
+      if (log.type === 'error') {
+        throw new Error(log.message);
+      }
     },
   },
 });

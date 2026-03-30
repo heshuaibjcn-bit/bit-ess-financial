@@ -5,9 +5,9 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Activity, CheckCircle, AlertCircle, XCircle, Info, Trash2, Filter, ChevronDown, ChevronUp } from 'lucide-react';
+import { Activity, CheckCircle, AlertCircle, XCircle, Info, Trash2, Filter, ChevronDown, ChevronUp, Code, ChevronRight, ChevronDown as ChevronDownIcon, Bug } from 'lucide-react';
 
-export type LogLevel = 'info' | 'success' | 'warning' | 'error';
+export type LogLevel = 'info' | 'success' | 'warning' | 'error' | 'debug';
 
 export interface LogEntry {
   id: string;
@@ -16,6 +16,16 @@ export interface LogEntry {
   message: string;
   details?: string;
   source: string;
+  // 调试信息
+  debugData?: {
+    request?: any;
+    response?: any;
+    error?: any;
+    duration?: number;
+    stack?: string;
+  };
+  // 是否展开
+  expanded?: boolean;
 }
 
 interface LLMConsoleProps {
@@ -33,6 +43,7 @@ function LogIcon({ level }: { level: LogLevel }) {
     success: <CheckCircle className="w-4 h-4 text-green-500" />,
     warning: <AlertCircle className="w-4 h-4 text-yellow-500" />,
     error: <XCircle className="w-4 h-4 text-red-500" />,
+    debug: <Bug className="w-4 h-4 text-gray-500" />,
   };
 
   return icons[level] || icons.info;
@@ -41,12 +52,13 @@ function LogIcon({ level }: { level: LogLevel }) {
 /**
  * 日志条目组件
  */
-function LogEntry({ entry }: { entry: LogEntry }) {
+function LogEntry({ entry, onToggle }: { entry: LogEntry; onToggle: (id: string) => void }) {
   const bgColor = {
     info: 'bg-blue-50 border-blue-200',
     success: 'bg-green-50 border-green-200',
     warning: 'bg-yellow-50 border-yellow-200',
     error: 'bg-red-50 border-red-200',
+    debug: 'bg-gray-100 border-gray-300',
   };
 
   const textColor = {
@@ -54,28 +66,114 @@ function LogEntry({ entry }: { entry: LogEntry }) {
     success: 'text-green-800',
     warning: 'text-yellow-800',
     error: 'text-red-800',
+    debug: 'text-gray-800',
   };
 
+  const hasDebugData = entry.debugData && (
+    entry.debugData.request ||
+    entry.debugData.response ||
+    entry.debugData.error ||
+    entry.debugData.stack
+  );
+
   return (
-    <div className={`flex items-start gap-2 p-2 rounded border ${bgColor[entry.level]} mb-1 text-sm`}>
-      <div className="mt-0.5 flex-shrink-0">
-        <LogIcon level={entry.level} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-xs text-gray-500 font-mono">{entry.timestamp}</span>
-          <span className="text-xs text-gray-400">•</span>
-          <span className="text-xs text-gray-600">{entry.source}</span>
+    <div className={`border rounded ${bgColor[entry.level]} mb-1 text-sm`}>
+      {/* 主要日志内容 */}
+      <div
+        className="flex items-start gap-2 p-2 cursor-pointer hover:opacity-80"
+        onClick={() => hasDebugData && onToggle(entry.id)}
+      >
+        <div className="mt-0.5 flex-shrink-0">
+          <LogIcon level={entry.level} />
         </div>
-        <p className={`font-medium ${textColor[entry.level]}`}>
-          {entry.message}
-        </p>
-        {entry.details && (
-          <p className="text-xs text-gray-600 mt-1 font-mono bg-white/50 p-1 rounded">
-            {entry.details}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-xs text-gray-500 font-mono">{entry.timestamp}</span>
+            <span className="text-xs text-gray-400">•</span>
+            <span className="text-xs text-gray-600">{entry.source}</span>
+            {entry.debugData?.duration && (
+              <>
+                <span className="text-xs text-gray-400">•</span>
+                <span className="text-xs text-gray-600">{entry.debugData.duration}ms</span>
+              </>
+            )}
+            {hasDebugData && (
+              <>
+                <span className="text-xs text-gray-400">•</span>
+                <ChevronRight
+                  className={`w-3 h-3 text-gray-400 transition-transform ${
+                    entry.expanded ? 'rotate-90' : ''
+                  }`}
+                />
+              </>
+            )}
+          </div>
+          <p className={`font-medium ${textColor[entry.level]}`}>
+            {entry.message}
           </p>
-        )}
+          {entry.details && (
+            <p className="text-xs text-gray-600 mt-1 font-mono bg-white/50 p-1 rounded">
+              {entry.details}
+            </p>
+          )}
+        </div>
       </div>
+
+      {/* 调试信息（可展开） */}
+      {hasDebugData && entry.expanded && (
+        <div className="border-t border-gray-300 bg-white/80 p-2 space-y-2">
+          {/* 请求数据 */}
+          {entry.debugData.request && (
+            <div>
+              <div className="text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                <Code className="w-3 h-3" />
+                请求
+              </div>
+              <pre className="text-xs bg-gray-900 text-green-400 p-2 rounded overflow-x-auto">
+                {JSON.stringify(entry.debugData.request, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {/* 响应数据 */}
+          {entry.debugData.response && (
+            <div>
+              <div className="text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1">
+                <Code className="w-3 h-3" />
+                响应
+              </div>
+              <pre className="text-xs bg-gray-900 text-blue-400 p-2 rounded overflow-x-auto">
+                {JSON.stringify(entry.debugData.response, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {/* 错误信息 */}
+          {entry.debugData.error && (
+            <div>
+              <div className="text-xs font-semibold text-red-700 mb-1 flex items-center gap-1">
+                <XCircle className="w-3 h-3" />
+                错误
+              </div>
+              <div className="text-xs bg-red-50 text-red-700 p-2 rounded">
+                <p className="font-mono">{entry.debugData.error}</p>
+                {entry.debugData.stack && (
+                  <pre className="mt-1 text-xs bg-red-100 p-1 rounded overflow-x-auto">
+                    {entry.debugData.stack}
+                  </pre>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* 性能信息 */}
+          {entry.debugData.duration && (
+            <div className="text-xs text-gray-600">
+              ⏱️ 耗时: {entry.debugData.duration}ms
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -85,7 +183,8 @@ function LogEntry({ entry }: { entry: LogEntry }) {
  */
 export function LLMConsole({ logs, onClear, isVisible = true }: LLMConsoleProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [filter, setFilter] = useState<LogLevel | 'all'>('all');
+  const [filter, setFilter] = useState<LogLevel | 'all' | 'debug'>('all');
+  const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
   const [isExpanded, setIsExpanded] = useState(true);
 
   // 自动滚动到底部
@@ -100,9 +199,23 @@ export function LLMConsole({ logs, onClear, isVisible = true }: LLMConsoleProps)
     ? logs
     : logs.filter(log => log.level === filter);
 
+  // 切换日志展开状态
+  const toggleLog = (id: string) => {
+    setExpandedLogs(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
   // 统计各类型日志数量
   const counts = {
     all: logs.length,
+    debug: logs.filter(l => l.level === 'debug').length,
     info: logs.filter(l => l.level === 'info').length,
     success: logs.filter(l => l.level === 'success').length,
     warning: logs.filter(l => l.level === 'warning').length,
@@ -156,7 +269,7 @@ export function LLMConsole({ logs, onClear, isVisible = true }: LLMConsoleProps)
         {/* 过滤器 */}
         <div className="flex items-center gap-1 flex-wrap">
           <Filter className="w-3 h-3 text-gray-500" />
-          {(['all', 'info', 'success', 'warning', 'error'] as const).map((level) => (
+          {(['all', 'debug', 'info', 'success', 'warning', 'error'] as const).map((level) => (
             <button
               key={level}
               onClick={() => setFilter(level)}
@@ -166,7 +279,7 @@ export function LLMConsole({ logs, onClear, isVisible = true }: LLMConsoleProps)
                   : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
               }`}
             >
-              {level === 'all' ? '全部' : level}
+              {level === 'all' ? '全部' : level === 'debug' ? '调试' : level}
               <span className="ml-1 text-gray-400">({counts[level]})</span>
             </button>
           ))}
@@ -187,7 +300,13 @@ export function LLMConsole({ logs, onClear, isVisible = true }: LLMConsoleProps)
               <p className="text-xs mt-1">点击"检查更新"开始</p>
             </div>
           ) : (
-            filteredLogs.map((log) => <LogEntry key={log.id} entry={log} />)
+            filteredLogs.map((log) => (
+              <LogEntry
+                key={log.id}
+                entry={{ ...log, expanded: expandedLogs.has(log.id) }}
+                onToggle={toggleLog}
+              />
+            ))
           )}
         </div>
       )}
@@ -226,7 +345,13 @@ export function LLMConsole({ logs, onClear, isVisible = true }: LLMConsoleProps)
 export function useLogCollector() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
 
-  const addLog = (level: LogLevel, message: string, details?: string, source = 'System') => {
+  const addLog = (
+    level: LogLevel,
+    message: string,
+    details?: string,
+    source = 'System',
+    debugData?: LogEntry['debugData']
+  ) => {
     const entry: LogEntry = {
       id: `${Date.now()}-${Math.random()}`,
       timestamp: new Date().toLocaleTimeString('zh-CN', {
@@ -239,6 +364,7 @@ export function useLogCollector() {
       message,
       details,
       source,
+      debugData,
     };
 
     setLogs(prev => [...prev, entry]);
@@ -249,11 +375,13 @@ export function useLogCollector() {
       success: 'log',
       warning: 'warn',
       error: 'error',
+      debug: 'log',
     }[level];
 
     console[consoleMethod as keyof Console](
       `[${source}] ${message}`,
-      details || ''
+      details || '',
+      debugData || ''
     );
   };
 
@@ -265,13 +393,15 @@ export function useLogCollector() {
     logs,
     addLog,
     clearLogs,
-    info: (message: string, details?: string, source?: string) =>
-      addLog('info', message, details, source),
-    success: (message: string, details?: string, source?: string) =>
-      addLog('success', message, details, source),
-    warning: (message: string, details?: string, source?: string) =>
-      addLog('warning', message, details, source),
-    error: (message: string, details?: string, source?: string) =>
-      addLog('error', message, details, source),
+    info: (message: string, details?: string, source?: string, debugData?: LogEntry['debugData']) =>
+      addLog('info', message, details, source, debugData),
+    success: (message: string, details?: string, source?: string, debugData?: LogEntry['debugData']) =>
+      addLog('success', message, details, source, debugData),
+    warning: (message: string, details?: string, source?: string, debugData?: LogEntry['debugData']) =>
+      addLog('warning', message, details, source, debugData),
+    error: (message: string, details?: string, source?: string, debugData?: LogEntry['debugData']) =>
+      addLog('error', message, details, source, debugData),
+    debug: (message: string, details?: string, source?: string, debugData?: LogEntry['debugData']) =>
+      addLog('debug', message, details, source, debugData),
   };
 }

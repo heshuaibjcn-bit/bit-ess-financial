@@ -589,6 +589,51 @@ export const AdminDashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Tariff Database Quick Access */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <div className="flex items-center space-x-2 mb-2">
+              <span className="text-2xl">⚡</span>
+              <h3 className="text-lg font-semibold text-gray-900">全国电价数据库</h3>
+              <span className="text-xs bg-green-600 text-white px-2 py-1 rounded-full">新功能</span>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              管理31个省份的电价数据、版本历史和智能更新。支持AI自动解析电价通知。
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+              <div className="flex items-center space-x-2">
+                <span className="text-green-600">✓</span>
+                <span className="text-gray-700">31省份电价</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-green-600">✓</span>
+                <span className="text-gray-700">版本控制</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-green-600">✓</span>
+                <span className="text-gray-700">AI智能更新</span>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                href="/admin/tariff-database"
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+              >
+                打开数据库管理
+              </a>
+              <button
+                onClick={() => window.open('/admin/tariff-database', '_blank')}
+                className="inline-flex items-center px-4 py-2 border border-green-600 text-green-700 rounded-lg hover:bg-green-50 transition text-sm font-medium"
+              >
+                新窗口打开
+              </button>
+            </div>
+          </div>
+          <div className="ml-4 text-5xl">💾</div>
+        </div>
+      </div>
     </div>
   );
 
@@ -1368,6 +1413,13 @@ export const AdminDashboard: React.FC = () => {
             >
               性能监控
             </button>
+            <a
+              href="/admin/tariff-database"
+              className="py-4 px-1 border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium text-sm transition flex items-center gap-2"
+            >
+              <span>电价数据库</span>
+              <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">新</span>
+            </a>
           </nav>
         </div>
       </div>

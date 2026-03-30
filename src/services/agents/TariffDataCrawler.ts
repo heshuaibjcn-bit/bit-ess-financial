@@ -343,12 +343,16 @@ export class TariffDataCrawler {
       // 提取时段配置
       const timePeriods = this.extractTimePeriods(doc);
 
+      // 检查是否使用了默认数据
+      const isDefaultData = (tariffs as any).isDefaultData === true;
+
       return {
         policyNumber: policyNumber || '未知',
         policyTitle: doc.querySelector('h1')?.textContent || '电价调整通知',
         effectiveDate: effectiveDate || new Date().toISOString().split('T')[0],
         tariffs,
         timePeriods,
+        isDefaultData,
       };
     } catch (error) {
       console.error('[Crawler] Failed to parse HTML notice:', error);
@@ -414,12 +418,16 @@ export class TariffDataCrawler {
       // 提取时段配置
       const timePeriods = this.extractTimePeriodsFromText(fullText);
 
+      // 检查是否使用了默认数据
+      const isDefaultData = (tariffs as any).isDefaultData === true;
+
       return {
         policyNumber: policyNumber || '未知',
         policyTitle: '电价调整通知',
         effectiveDate: effectiveDate || new Date().toISOString().split('T')[0],
         tariffs,
         timePeriods,
+        isDefaultData,
       };
     } catch (error) {
       console.error('[Crawler] Failed to parse PDF notice:', error);
@@ -475,6 +483,7 @@ export class TariffDataCrawler {
 
     // 如果没有从表格中提取到数据，使用默认数据
     if (tariffs.length === 0) {
+      console.warn('[Crawler] Using default tariff data (failed to extract from website)');
       return this.getDefaultTariffs();
     }
 
@@ -618,10 +627,11 @@ export class TariffDataCrawler {
   }
 
   /**
-   * 获取默认电价数据
+   * 获取默认电价数据（标记为默认数据）
    */
   private getDefaultTariffs(): any[] {
-    return [
+    // 标记为默认数据
+    const tariffs = [
       {
         voltageLevel: '0.4kV',
         tariffType: 'large_industrial',
@@ -644,6 +654,10 @@ export class TariffDataCrawler {
         flatPrice: 0.623,
       },
     ];
+
+    // 标记数组为默认数据
+    (tariffs as any).isDefaultData = true;
+    return tariffs;
   }
 
   /**

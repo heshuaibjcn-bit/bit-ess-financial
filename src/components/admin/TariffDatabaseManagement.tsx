@@ -33,7 +33,7 @@ export function TariffDatabaseManagement() {
   const [provinceError, setProvinceError] = useState<string | null>(null);
 
   // LLM Console日志收集
-  const { logs, addLog, clearLogs, info, success, warning, error } = useLogCollector();
+  const { logs, addLog, clearLogs, info, success, warning, error, debug } = useLogCollector();
 
   const repository = getLocalTariffRepository();
   const agent = getLocalTariffUpdateAgent();
@@ -44,19 +44,45 @@ export function TariffDatabaseManagement() {
   }, []);
 
   const initializeDatabase = async () => {
+    const startTime = Date.now();
     try {
       setLoading(true);
       info('正在初始化电价数据库...', undefined, 'Database');
 
+      debug('初始化请求', 'repository.initialize()', 'Database', {
+        request: {
+          method: 'initialize',
+          timestamp: new Date().toISOString()
+        }
+      });
+
       await repository.initialize();
-      success('数据库初始化成功', 'IndexedDB 已就绪', 'Database');
+
+      const initDuration = Date.now() - startTime;
+
+      debug('初始化响应', '数据库已就绪', 'Database', {
+        response: {
+          status: 'success',
+          duration: initDuration
+        },
+        duration: initDuration
+      });
+
+      success('数据库初始化成功', `IndexedDB 已就绪 (${initDuration}ms)`, 'Database');
 
       await loadProvinces();
       await loadPendingApprovals();
 
-      success('系统初始化完成', `已加载 ${provinces.length} 个省份`, 'System');
+      const totalDuration = Date.now() - startTime;
+      success('系统初始化完成', `已加载 ${provinces.length} 个省份 (总耗时: ${totalDuration}ms)`, 'System');
     } catch (err) {
+      const duration = Date.now() - startTime;
       error('数据库初始化失败', (err as Error).message, 'Database');
+      debug('初始化异常详情', (err as Error).message, 'Database', {
+        error: (err as Error).message,
+        stack: (err as Error).stack,
+        duration
+      });
       console.error('Failed to initialize database:', err);
     } finally {
       setLoading(false);
@@ -80,8 +106,35 @@ export function TariffDatabaseManagement() {
     const provinceName = provinces.find(p => p.code === provinceCode)?.name || provinceCode;
     info(`加载 ${provinceName} 详情`, `省份代码: ${provinceCode}`, 'Database');
 
+    const startTime = Date.now();
+
     try {
+      debug('数据库查询', `getActiveTariffByProvince(${provinceCode})`, 'Database', {
+        request: {
+          method: 'getActiveTariffByProvince',
+          provinceCode
+        }
+      });
+
       const detail = await repository.getActiveTariffByProvince(provinceCode);
+
+      const duration = Date.now() - startTime;
+
+      debug('数据库查询结果', `耗时: ${duration}ms`, 'Database', {
+        response: {
+          hasData: !!detail,
+          provinceCode,
+          duration,
+          detail: detail ? {
+            version: detail.version.version,
+            effectiveDate: detail.version.effectiveDate,
+            tariffsCount: detail.tariffs?.length || 0,
+            hasTimePeriods: !!detail.timePeriods
+          } : null
+        },
+        duration
+      });
+
       setProvinceDetail(detail);
 
       if (!detail) {
@@ -100,6 +153,10 @@ export function TariffDatabaseManagement() {
       }
     } catch (err) {
       error('加载失败', (err as Error).message, 'Database');
+      debug('加载异常详情', (err as Error).message, 'Database', {
+        error: (err as Error).message,
+        stack: (err as Error).stack
+      });
       console.error('Failed to load province detail:', err);
       setProvinceError('加载省份数据失败：' + (err as Error).message);
     } finally {
@@ -165,7 +222,23 @@ export function TariffDatabaseManagement() {
 
       info(`审批通过 ${provinceName}`, `更新ID: ${updateId}`, 'Approval');
 
+      debug('审批请求数据', updateId, 'Approval', {
+        request: {
+          updateId,
+          update: update,
+          approvedBy: 'admin'
+        }
+      });
+
       await repository.approveUpdate(updateId, 'admin');
+
+      debug('审批响应', '成功激活新版本', 'Approval', {
+        response: {
+          updateId,
+          status: 'approved',
+          province: provinceName
+        }
+      });
 
       success('审批成功', `已激活 ${provinceName} 的新电价数据`, 'Approval');
       alert('审批通过！');
@@ -176,6 +249,10 @@ export function TariffDatabaseManagement() {
       }
     } catch (error) {
       error('审批失败', (error as Error).message, 'Approval');
+      debug('审批异常详情', (error as Error).message, 'Approval', {
+        error: (error as Error).message,
+        stack: (error as Error).stack
+      });
       console.error('Failed to approve:', error);
       alert('审批失败：' + (error as Error).message);
     }
@@ -191,7 +268,25 @@ export function TariffDatabaseManagement() {
 
       warning(`拒绝更新 ${provinceName}`, `原因: ${reason}`, 'Approval');
 
+      debug('拒绝请求数据', updateId, 'Approval', {
+        request: {
+          updateId,
+          update: update,
+          rejectedBy: 'admin',
+          reason
+        }
+      });
+
       await repository.rejectUpdate(updateId, 'admin', reason);
+
+      debug('拒绝响应', '成功拒绝更新', 'Approval', {
+        response: {
+          updateId,
+          status: 'rejected',
+          province: provinceName,
+          reason
+        }
+      });
 
       success('已拒绝更新', `更新已标记为拒绝状态`, 'Approval');
       alert('已拒绝更新');
@@ -199,6 +294,10 @@ export function TariffDatabaseManagement() {
       await loadPendingApprovals();
     } catch (error) {
       error('拒绝失败', (error as Error).message, 'Approval');
+      debug('拒绝异常详情', (error as Error).message, 'Approval', {
+        error: (error as Error).message,
+        stack: (error as Error).stack
+      });
       console.error('Failed to reject:', error);
       alert('操作失败：' + (error as Error).message);
     }
@@ -216,11 +315,41 @@ export function TariffDatabaseManagement() {
     setIsCheckingUpdates(true);
     setUpdateResults([]);
 
+    const startTime = Date.now();
+
     try {
       info(`开始检查 ${provinceName} (${selectedProvince}) 电价更新`, undefined, 'Agent');
       info('连接到智能体服务...', undefined, 'Agent');
 
+      // 记录请求数据
+      const requestData = {
+        provinceCode: selectedProvince,
+        provinceName,
+        timestamp: new Date().toISOString(),
+        method: 'checkProvinceUpdate'
+      };
+
+      debug('发送请求到智能体', JSON.stringify(requestData, null, 2), 'Agent', {
+        request: requestData
+      });
+
       const result = await agent.checkProvinceUpdate(selectedProvince);
+
+      const duration = Date.now() - startTime;
+
+      // 记录响应数据
+      debug('收到智能体响应', `耗时: ${duration}ms`, 'Agent', {
+        response: {
+          success: result.success,
+          provinceCode: result.provinceCode,
+          hasParsed: !!result.parsed,
+          requiresApproval: result.requiresApproval,
+          versionId: result.versionId,
+          source: result.source,
+          error: result.error
+        },
+        duration
+      });
 
       setUpdateResults([result]);
 
@@ -229,7 +358,18 @@ export function TariffDatabaseManagement() {
           success('数据解析成功', `文号: ${result.parsed.policyNumber}`, 'Parser');
           info('政策标题', result.parsed.policyTitle, 'Parser');
           info('生效日期', result.parsed.effectiveDate, 'Parser');
-          info('电价数据', `${result.parsed.tariffs.length} 个电压等级`, 'Parser');
+
+          // 记录完整的解析数据
+          debug('电价解析数据', `${result.parsed.tariffs.length} 个电压等级`, 'Parser', {
+            response: {
+              policyNumber: result.parsed.policyNumber,
+              policyTitle: result.parsed.policyTitle,
+              effectiveDate: result.parsed.effectiveDate,
+              tariffs: result.parsed.tariffs,
+              timePeriods: result.parsed.timePeriods
+            }
+          });
+
           info('时段配置', `峰时${result.parsed.timePeriods.peakHours.length}h 谷时${result.parsed.timePeriods.valleyHours.length}h`, 'Parser');
         }
 
@@ -244,10 +384,20 @@ export function TariffDatabaseManagement() {
         alert(`检查完成！${result.requiresApproval ? '新数据需要审批' : '无新数据'}`);
       } else {
         error('检查失败', result.error || '未知错误', 'Agent');
+        debug('错误详情', result.error || '未知错误', 'Agent', {
+          error: result.error,
+          response: result
+        });
         alert(`检查失败：${result.error}`);
       }
     } catch (err) {
+      const duration = Date.now() - startTime;
       error('检查异常', (err as Error).message, 'Agent');
+      debug('异常堆栈', (err as Error).message, 'Agent', {
+        error: (err as Error).message,
+        stack: (err as Error).stack,
+        duration
+      });
       console.error('Failed to check update:', err);
       alert('检查更新失败：' + (err as Error).message);
     } finally {
@@ -259,10 +409,38 @@ export function TariffDatabaseManagement() {
     setIsCheckingUpdates(true);
     setUpdateResults([]);
 
+    const startTime = Date.now();
+
     try {
       info('开始批量检查所有省份', '启用数据源数量: 3', 'Agent');
 
+      const requestData = {
+        method: 'checkAllProvinces',
+        timestamp: new Date().toISOString()
+      };
+
+      debug('发送批量检查请求', JSON.stringify(requestData, null, 2), 'Agent', {
+        request: requestData
+      });
+
       const results = await agent.checkAllProvinces();
+
+      const duration = Date.now() - startTime;
+
+      debug('收到批量检查响应', `耗时: ${duration}ms`, 'Agent', {
+        response: {
+          count: results.length,
+          successCount: results.filter(r => r.success).length,
+          results: results.map(r => ({
+            provinceCode: r.provinceCode,
+            success: r.success,
+            requiresApproval: r.requiresApproval,
+            source: r.source
+          }))
+        },
+        duration
+      });
+
       setUpdateResults(results);
 
       const successCount = results.filter(r => r.success).length;
@@ -284,7 +462,13 @@ export function TariffDatabaseManagement() {
         await loadPendingApprovals();
       }
     } catch (err) {
+      const duration = Date.now() - startTime;
       error('批量检查异常', (err as Error).message, 'Agent');
+      debug('异常堆栈', (err as Error).message, 'Agent', {
+        error: (err as Error).message,
+        stack: (err as Error).stack,
+        duration
+      });
       console.error('Failed to check updates:', err);
       alert('批量检查失败：' + (err as Error).message);
     } finally {

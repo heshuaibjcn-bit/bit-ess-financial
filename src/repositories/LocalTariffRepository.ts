@@ -32,6 +32,15 @@ export interface TariffVersion {
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
+  // 数据来源标识
+  dataSource?: 'real' | 'default' | 'mock';
+  dataConfidence?: number;
+  crawlMetadata?: {
+    crawledAt?: string;
+    sourceUrl?: string;
+    parseMethod?: string;
+    fallbackReason?: string;
+  };
 }
 
 export interface TariffData {
@@ -112,6 +121,15 @@ export interface CreateTariffVersionInput {
     peakDescription?: string;
     valleyDescription?: string;
     flatDescription?: string;
+  };
+  // 数据来源标识
+  dataSource?: 'real' | 'default' | 'mock';
+  dataConfidence?: number;
+  crawlMetadata?: {
+    crawledAt?: string;
+    sourceUrl?: string;
+    parseMethod?: string;
+    fallbackReason?: string;
   };
 }
 
@@ -198,6 +216,9 @@ export class LocalTariffRepository {
       createdBy: userId,
       createdAt: now,
       updatedAt: now,
+      dataSource: input.dataSource,
+      dataConfidence: input.dataConfidence,
+      crawlMetadata: input.crawlMetadata,
     };
 
     await this.db.addVersion(version);
@@ -248,6 +269,8 @@ export class LocalTariffRepository {
         version: input.version,
         effectiveDate: input.effectiveDate,
         tariffCount: input.tariffs.length,
+        dataSource: input.dataSource || 'unknown',
+        dataConfidence: input.dataConfidence || 0,
       },
       status: 'pending',
       requiresApproval: true,

@@ -4,7 +4,7 @@
  * Displays a project summary card in the project list.
  */
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { CloudProject, ProjectStatus } from '@/stores/cloudProjectStore';
@@ -65,9 +65,23 @@ const formatRelativeTime = (dateString: string): string => {
 };
 
 /**
- * ProjectCard Component
+ * Get collaboration model display name
  */
-export const ProjectCard: React.FC<ProjectCardProps> = ({
+const getCollaborationModelName = (model: string | null): string => {
+  if (!model) return '-';
+  const models: Record<string, string> = {
+    emc: 'EMC',
+    lease: '租赁',
+    sale: '销售',
+    joint_venture: '合资',
+  };
+  return models[model] || model;
+};
+
+/**
+ * ProjectCard Component - Optimized with React.memo
+ */
+export const ProjectCard = React.memo<ProjectCardProps>(({
   project,
   onDuplicate,
   onDelete,
@@ -76,31 +90,19 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
   const navigate = useNavigate();
   const statusStyle = statusStyles[project.status];
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     navigate(`/project/${project.id}`);
-  };
+  }, [navigate, project.id]);
 
-  const handleDuplicate = (e: React.MouseEvent) => {
+  const handleDuplicate = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     onDuplicate?.(project.id);
-  };
+  }, [onDuplicate, project.id]);
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     onDelete?.(project.id);
-  };
-
-  // Get collaboration model display name
-  const getCollaborationModelName = (model: string | null): string => {
-    if (!model) return '-';
-    const models: Record<string, string> = {
-      emc: 'EMC',
-      lease: '租赁',
-      sale: '销售',
-      joint_venture: '合资',
-    };
-    return models[model] || model;
-  };
+  }, [onDelete, project.id]);
 
   return (
     <div
@@ -180,12 +182,25 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for better performance
+  return (
+    prevProps.project.id === nextProps.project.id &&
+    prevProps.project.name === nextProps.project.name &&
+    prevProps.project.status === nextProps.project.status &&
+    prevProps.project.updatedAt === nextProps.project.updatedAt &&
+    prevProps.project.industry === nextProps.project.industry &&
+    prevProps.project.description === nextProps.project.description &&
+    prevProps.project.collaborationModel === nextProps.project.collaborationModel &&
+    prevProps.onDuplicate === nextProps.onDuplicate &&
+    prevProps.onDelete === nextProps.onDelete
+  );
+});
 
 /**
- * Project List Item (compact view)
+ * Project List Item (compact view) - Optimized with React.memo
  */
-export const ProjectListItem: React.FC<ProjectCardProps> = ({
+export const ProjectListItem = React.memo<ProjectCardProps>(({
   project,
   onDuplicate,
   onDelete,
@@ -194,9 +209,19 @@ export const ProjectListItem: React.FC<ProjectCardProps> = ({
   const navigate = useNavigate();
   const statusStyle = statusStyles[project.status];
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     navigate(`/project/${project.id}`);
-  };
+  }, [navigate, project.id]);
+
+  const handleDuplicate = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDuplicate?.(project.id);
+  }, [onDuplicate, project.id]);
+
+  const handleDelete = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    onDelete?.(project.id);
+  }, [onDelete, project.id]);
 
   return (
     <div
@@ -231,10 +256,7 @@ export const ProjectListItem: React.FC<ProjectCardProps> = ({
       {/* Actions */}
       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDuplicate?.(project.id);
-          }}
+          onClick={handleDuplicate}
           className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -242,10 +264,7 @@ export const ProjectListItem: React.FC<ProjectCardProps> = ({
           </svg>
         </button>
         <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete?.(project.id);
-          }}
+          onClick={handleDelete}
           className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,6 +274,16 @@ export const ProjectListItem: React.FC<ProjectCardProps> = ({
       </div>
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for better performance
+  return (
+    prevProps.project.id === nextProps.project.id &&
+    prevProps.project.name === nextProps.project.name &&
+    prevProps.project.status === nextProps.project.status &&
+    prevProps.project.updatedAt === nextProps.project.updatedAt &&
+    prevProps.onDuplicate === nextProps.onDuplicate &&
+    prevProps.onDelete === nextProps.onDelete
+  );
+});
 
 export default ProjectCard;
