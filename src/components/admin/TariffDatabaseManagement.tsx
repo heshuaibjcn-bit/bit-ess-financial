@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Database, RefreshCw, History, Download, Upload, Bot, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Database, RefreshCw, History, Download, Upload, Bot, CheckCircle, XCircle, AlertCircle, FileText, DollarSign, Clock, ArrowLeft } from 'lucide-react';
 import { getLocalTariffRepository } from '@/repositories/LocalTariffRepository';
 import { getLocalTariffUpdateAgent } from '@/services/agents/LocalTariffUpdateAgent';
 import type {
@@ -26,6 +26,7 @@ export function TariffDatabaseManagement() {
   const [updateLogs, setUpdateLogs] = useState<UpdateLog[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<UpdateLog[]>([]);
   const [updateResults, setUpdateResults] = useState<UpdateResult[]>([]);
+  const [selectedResult, setSelectedResult] = useState<UpdateResult | null>(null);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [showDataSources, setShowDataSources] = useState(false);
   const [provinceError, setProvinceError] = useState<string | null>(null);
@@ -613,7 +614,7 @@ export function TariffDatabaseManagement() {
       )}
 
       {/* 更新结果 */}
-      {updateResults.length > 0 && (
+      {updateResults.length > 0 && !selectedResult && (
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">更新检查结果</h2>
@@ -626,7 +627,11 @@ export function TariffDatabaseManagement() {
           </div>
           <div className="space-y-3">
             {updateResults.map((result, index) => (
-              <div key={index} className="flex items-start justify-between border rounded-lg p-4">
+              <div
+                key={index}
+                className="flex items-start justify-between border rounded-lg p-4 hover:bg-gray-50 transition cursor-pointer"
+                onClick={() => result.success && result.parsed && setSelectedResult(result)}
+              >
                 <div className="flex items-start space-x-3">
                   {result.success ? (
                     result.requiresApproval ? (
@@ -657,6 +662,9 @@ export function TariffDatabaseManagement() {
                         {result.requiresApproval && (
                           <div className="text-yellow-600 mt-1">⚠️ 等待审批后生效</div>
                         )}
+                        {result.parsed && (
+                          <div className="text-blue-600 mt-1 text-xs">📄 点击查看详情</div>
+                        )}
                       </div>
                     ) : (
                       <div className="text-sm text-red-600">{result.error}</div>
@@ -665,6 +673,217 @@ export function TariffDatabaseManagement() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* 检查结果详情 */}
+      {selectedResult && selectedResult.parsed && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-semibold">检查结果详情</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                {provinces.find(p => p.code === selectedResult.provinceCode)?.name || selectedResult.provinceCode}
+              </p>
+            </div>
+            <button
+              onClick={() => setSelectedResult(null)}
+              className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              返回列表
+            </button>
+          </div>
+
+          <div className="space-y-6">
+            {/* 政策信息 */}
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-blue-600" />
+                政策信息
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm text-gray-600">省份</label>
+                  <p className="font-medium">{selectedResult.parsed.provinceName}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600">政策文号</label>
+                  <p className="font-medium">{selectedResult.parsed.policyNumber}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600">政策标题</label>
+                  <p className="font-medium">{selectedResult.parsed.policyTitle}</p>
+                </div>
+                <div>
+                  <label className="text-sm text-gray-600">生效日期</label>
+                  <p className="font-medium">{selectedResult.parsed.effectiveDate}</p>
+                </div>
+                <div className="col-span-2">
+                  <label className="text-sm text-gray-600">政策链接</label>
+                  <a
+                    href={selectedResult.parsed.policyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline block break-all"
+                  >
+                    {selectedResult.parsed.policyUrl}
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* 电价数据 */}
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-green-600" />
+                电价数据
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-3">电压等级</th>
+                      <th className="text-left py-2 px-3">用电类型</th>
+                      <th className="text-right py-2 px-3">峰时电价</th>
+                      <th className="text-right py-2 px-3">平时电价</th>
+                      <th className="text-right py-2 px-3">谷时电价</th>
+                      <th className="text-right py-2 px-3">峰谷价差</th>
+                      <th className="text-right py-2 px-3">价差率</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedResult.parsed.tariffs.map((tariff, idx) => (
+                      <tr key={idx} className="border-b last:border-0">
+                        <td className="py-2 px-3 font-medium">{tariff.voltageLevel}</td>
+                        <td className="py-2 px-3">{tariff.tariffType}</td>
+                        <td className="py-2 px-3 text-right text-red-600 font-medium">
+                          ¥{tariff.peakPrice.toFixed(3)}
+                        </td>
+                        <td className="py-2 px-3 text-right text-blue-600">
+                          ¥{tariff.flatPrice.toFixed(3)}
+                        </td>
+                        <td className="py-2 px-3 text-right text-green-600">
+                          ¥{tariff.valleyPrice.toFixed(3)}
+                        </td>
+                        <td className="py-2 px-3 text-right">
+                          ¥{(tariff.peakPrice - tariff.valleyPrice).toFixed(3)}
+                        </td>
+                        <td className="py-2 px-3 text-right text-gray-600">
+                          {((tariff.peakPrice - tariff.valleyPrice) / tariff.peakPrice * 100).toFixed(1)}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* 时段配置 */}
+            <div className="border rounded-lg p-4">
+              <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-purple-600" />
+                时段配置
+              </h3>
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <h4 className="font-semibold text-red-600 mb-2">峰时段</h4>
+                  {selectedResult.parsed.timePeriods.peakDescription && (
+                    <p className="text-sm text-gray-600 mb-2">
+                      {selectedResult.parsed.timePeriods.peakDescription}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-1">
+                    {selectedResult.parsed.timePeriods.peakHours.map((h) => (
+                      <span key={h} className="inline-block w-8 h-8 bg-red-100 text-red-700 rounded text-center text-xs leading-8">
+                        {h}:00
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    共 {selectedResult.parsed.timePeriods.peakHours.length} 小时
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-blue-600 mb-2">平时段</h4>
+                  {selectedResult.parsed.timePeriods.flatDescription && (
+                    <p className="text-sm text-gray-600 mb-2">
+                      {selectedResult.parsed.timePeriods.flatDescription}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-1">
+                    {selectedResult.parsed.timePeriods.flatHours.map((h) => (
+                      <span key={h} className="inline-block w-8 h-8 bg-blue-100 text-blue-700 rounded text-center text-xs leading-8">
+                        {h}:00
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    共 {selectedResult.parsed.timePeriods.flatHours.length} 小时
+                  </p>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-green-600 mb-2">谷时段</h4>
+                  {selectedResult.parsed.timePeriods.valleyDescription && (
+                    <p className="text-sm text-gray-600 mb-2">
+                      {selectedResult.parsed.timePeriods.valleyDescription}
+                    </p>
+                  )}
+                  <div className="flex flex-wrap gap-1">
+                    {selectedResult.parsed.timePeriods.valleyHours.map((h) => (
+                      <span key={h} className="inline-block w-8 h-8 bg-green-100 text-green-700 rounded text-center text-xs leading-8">
+                        {h}:00
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    共 {selectedResult.parsed.timePeriods.valleyHours.length} 小时
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 操作按钮 */}
+            <div className="flex gap-3">
+              {selectedResult.requiresApproval ? (
+                <div className="flex-1 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-yellow-900">等待审批</h4>
+                      <p className="text-sm text-yellow-700 mt-1">
+                        此更新需要管理员审批后才能生效
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setSelectedResult(null);
+                        // 滚动到待审批区域
+                        setTimeout(() => {
+                          const element = document.getElementById('pending-approvals');
+                          if (element) element.scrollIntoView({ behavior: 'smooth' });
+                        }, 100);
+                      }}
+                      className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition"
+                    >
+                      查看待审批
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-green-900">已是最新版本</h4>
+                      <p className="text-sm text-green-700 mt-1">
+                        当前电价数据已是最新，无需更新
+                      </p>
+                    </div>
+                    <CheckCircle className="w-12 h-12 text-green-600" />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -719,7 +938,7 @@ export function TariffDatabaseManagement() {
 
       {/* 待审批提示 */}
       {pendingApprovals.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-500 rounded-lg p-6">
+        <div id="pending-approvals" className="bg-yellow-50 border border-yellow-500 rounded-lg p-6">
           <div className="flex items-start space-x-3">
             <span className="text-2xl">🔔</span>
             <div className="flex-1">
