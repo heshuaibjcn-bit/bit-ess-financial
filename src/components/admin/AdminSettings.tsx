@@ -4,9 +4,11 @@
  * 整合所有 AI 和 LLM 的 API 配置：
  * - GLM API (智谱AI) - 用于 Agent 系统
  * - 系统配置和调试选项
+ * - 电价数据库管理入口
  */
 
 import React, { useState, useEffect } from 'react';
+import { Database } from 'lucide-react';
 import { getSettingsManager } from '@/config/Settings';
 
 interface ConfigStatus {
@@ -16,12 +18,12 @@ interface ConfigStatus {
 export const AdminSettings: React.FC = () => {
   const settingsManager = getSettingsManager();
   const [configStatus, setConfigStatus] = useState<ConfigStatus>({
-    glm: { configured: false, model: 'glm-4-turbo' }
+    glm: { configured: false, model: 'glm-4' }
   });
 
   // GLM API States
   const [glmApiKey, setGlmApiKey] = useState('');
-  const [glmModel, setGlmModel] = useState('glm-4-turbo');
+  const [glmModel, setGlmModel] = useState('glm-4');
   const [showGlmKey, setShowGlmKey] = useState(false);
   const [glmSaving, setGlmSaving] = useState(false);
 
@@ -135,7 +137,7 @@ export const AdminSettings: React.FC = () => {
   };
 
   const glmModels = [
-    { value: 'glm-4-turbo', label: 'GLM-4 Turbo', description: '最新模型，快速且准确' },
+    { value: 'glm-4', label: 'GLM-4 Turbo', description: '最新模型，快速且准确' },
     { value: 'glm-4', label: 'GLM-4', description: '稳定版本' },
     { value: 'glm-3-turbo', label: 'GLM-3 Turbo', description: '旧版模型，速度快' }
   ];
@@ -308,6 +310,28 @@ export const AdminSettings: React.FC = () => {
           >
             保存 Agent 配置
           </button>
+        </div>
+      </div>
+
+      {/* Tariff Database Quick Access */}
+      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+        <div className="flex items-start justify-between">
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">⚡ 全国电价数据库</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              管理31个省份的电价数据、版本历史和智能更新
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href="/admin/tariff-database"
+                className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+              >
+                <Database className="w-4 h-4 mr-2" />
+                打开电价数据库
+              </a>
+            </div>
+          </div>
+          <div className="text-4xl">💾</div>
         </div>
       </div>
 

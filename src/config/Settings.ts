@@ -63,7 +63,7 @@ export interface AppSettings {
 const DEFAULT_SETTINGS_RAW: AppSettings = {
   glm: {
     apiKey: '',
-    model: 'glm-4-turbo',
+    model: 'glm-4',
     baseURL: 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
     enabled: false
   },
@@ -234,6 +234,9 @@ class SettingsManager {
     this.settings.glm.apiKey = apiKey;
     this.settings.glm.enabled = apiKey.length > 0;
     this.saveSettings();
+
+    // Also save to localStorage for NanoAgent compatibility
+    localStorage.setItem('glm_api_key', apiKey);
   }
 
   /**
@@ -308,6 +311,37 @@ export function getSettingsManager(): SettingsManager {
     settingsManagerInstance = new SettingsManager();
   }
   return settingsManagerInstance;
+}
+
+/**
+ * Initialize AI configuration from environment variables
+ * This should be called once on app startup
+ */
+export function initializeAIConfig(): void {
+  // Check if we have environment variables configured
+  const envGlmKey = import.meta.env.VITE_GLM_API_KEY;
+  const envAnthropicKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
+
+  // Initialize GLM API key from environment if:
+  // 1. Environment variable is set
+  // 2. localStorage doesn't already have a key (user hasn't manually configured)
+  if (envGlmKey && !localStorage.getItem('glm_api_key')) {
+    localStorage.setItem('glm_api_key', envGlmKey);
+    console.log('[AI Config] Initialized GLM API key from environment');
+  }
+
+  // Initialize Anthropic API key from environment
+  if (envAnthropicKey && !localStorage.getItem('anthropic_api_key')) {
+    localStorage.setItem('anthropic_api_key', envAnthropicKey);
+    console.log('[AI Config] Initialized Anthropic API key from environment');
+  }
+
+  // Sync with settings manager
+  const settingsManager = getSettingsManager();
+  const storedGlmKey = localStorage.getItem('glm_api_key');
+  if (storedGlmKey && !settingsManager.isGLMConfigured()) {
+    settingsManager.updateGLMApiKey(storedGlmKey);
+  }
 }
 
 /**

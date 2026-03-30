@@ -5,7 +5,7 @@
  * Now with authentication and cloud project management!
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import './i18n/config'; // Initialize i18n
@@ -13,31 +13,33 @@ import './index.css';
 
 // Import providers and contexts
 import { useAuth } from './contexts/AuthContext';
+import { SecurityProvider } from './contexts/SecurityContext';
 
 // Import components
 import { PageErrorBoundary } from './components';
 import { FullPageLoading } from './components/ui';
 
-// Import pages
-import { AuthPage } from './components/AuthPage';
-import { ProjectListPage } from './components/ProjectListPage';
-import { ProjectDetailPage } from './components/ProjectDetailPage';
-import { SettingsPage } from './components/SettingsPage';
-import { AdminDashboard } from './components/admin';
-import { AgentMetricsDashboard } from './components/admin/AgentMetricsDashboard';
+// Lazy load pages for code splitting
+const AuthPage = lazy(() => import('./components/AuthPage').then(m => ({ default: m.AuthPage })));
+const ProjectListPage = lazy(() => import('./components/ProjectListPage').then(m => ({ default: m.ProjectListPage })));
+const ProjectDetailPage = lazy(() => import('./components/ProjectDetailPage').then(m => ({ default: m.ProjectDetailPage })));
+const SettingsPage = lazy(() => import('./components/SettingsPage').then(m => ({ default: m.SettingsPage })));
+const AdminDashboard = lazy(() => import('./components/admin').then(m => ({ default: m.AdminDashboard })));
+const AgentMetricsDashboard = lazy(() => import('./components/admin/AgentMetricsDashboard').then(m => ({ default: m.AgentMetricsDashboard })));
+const SecurityDashboard = lazy(() => import('./components/admin/SecurityDashboard').then(m => ({ default: m.SecurityDashboard })));
+const TariffDatabaseManagement = lazy(() => import('./components/admin/TariffDatabaseManagement').then(m => ({ default: m.TariffDatabaseManagement })));
 
-// Import calculator components (for unauthenticated/demo mode)
-import { CalculatorForm } from './components/CalculatorForm';
+// Lazy load calculator components (for unauthenticated/demo mode)
+const CalculatorForm = lazy(() => import('./components/CalculatorForm').then(m => ({ default: m.CalculatorForm })));
+
+// Import hooks and services (these are small and used frequently)
 import { useCalculator } from './hooks/useCalculator';
 import { useAllProvinces } from './hooks/useProvince';
 import { ProjectInput } from './domain/schemas/ProjectSchema';
 import { BenchmarkEngine } from './domain/services/BenchmarkEngine';
-import {
-  Disclaimer,
-  RiskWarning,
-  InlineDisclaimer,
-  TermsLink,
-} from './components/Disclaimer';
+
+// Import Disclaimer components directly (small utility components)
+import { Disclaimer, RiskWarning, InlineDisclaimer, TermsLink } from './components/Disclaimer';
 
 /**
  * Protected Route Component
@@ -181,14 +183,16 @@ const DemoCalculator: React.FC = () => {
         </div>
 
         {/* Calculator Form */}
-        <PageErrorBoundary pageName="CalculatorForm">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <CalculatorForm
-              onSubmit={handleSubmit}
-              onCalculate={handleCalculate}
-            />
-          </div>
-        </PageErrorBoundary>
+        <Suspense fallback={<FullPageLoading />}>
+          <PageErrorBoundary pageName="CalculatorForm">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <CalculatorForm
+                onSubmit={handleSubmit}
+                onCalculate={handleCalculate}
+              />
+            </div>
+          </PageErrorBoundary>
+        </Suspense>
 
         {/* Info Section */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -246,74 +250,159 @@ const DemoCalculator: React.FC = () => {
 };
 
 /**
+ * Loading component for lazy loaded routes
+ */
+const RouteLoading: React.FC = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="text-center">
+      <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
+      <p className="mt-4 text-gray-600">Loading...</p>
+    </div>
+  </div>
+);
+
+/**
+ * Wrapper component for lazy loaded routes with error boundary
+ */
+interface LazyRouteWrapperProps {
+  children: React.ReactNode;
+}
+
+const LazyRouteWrapper: React.FC<LazyRouteWrapperProps> = ({ children }) => (
+  <Suspense fallback={<RouteLoading />}>
+    <PageErrorBoundary pageName="LazyRoute">
+      {children}
+    </PageErrorBoundary>
+  </Suspense>
+);
+
+/**
  * Main App Component with Routing
  */
 function App() {
+  // Initialize AI configuration on app startup
+  useEffect(() => {
+    // Only initialize in browser environment
+    if (typeof window !== 'undefined') {
+      // Dynamically import to avoid SSR issues
+      import('@/config/Settings').then(({ initializeAIConfig }) => {
+        try {
+          initializeAIConfig();
+        } catch (error) {
+          console.warn('[App] Failed to initialize AI config:', error);
+        }
+      });
+    }
+  }, []);
+
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public Routes */}
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <AuthPage mode="login" />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <PublicRoute>
-              <AuthPage mode="register" />
-            </PublicRoute>
-          }
-        />
+    <SecurityProvider>
+      <BrowserRouter>
+        <Suspense fallback={<RouteLoading />}>
+          <Routes>
+            {/* Public Routes */}
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <LazyRouteWrapper>
+                    <AuthPage mode="login" />
+                  </LazyRouteWrapper>
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <PublicRoute>
+                  <LazyRouteWrapper>
+                    <AuthPage mode="register" />
+                  </LazyRouteWrapper>
+                </PublicRoute>
+              }
+            />
 
-        {/* Demo Route (unauthenticated) */}
-        <Route path="/demo" element={<DemoCalculator />} />
+            {/* Demo Route (unauthenticated) */}
+            <Route path="/demo" element={<LazyRouteWrapper><DemoCalculator /></LazyRouteWrapper>} />
 
-        {/* Public Metrics Dashboard (unauthenticated) */}
-        <Route path="/admin/agent-metrics" element={<AgentMetricsDashboard refreshInterval={5000} />} />
+            {/* Public Metrics Dashboard (unauthenticated) */}
+            <Route
+              path="/admin/agent-metrics"
+              element={
+                <LazyRouteWrapper>
+                  <AgentMetricsDashboard refreshInterval={5000} />
+                </LazyRouteWrapper>
+              }
+            />
 
-        {/* Protected Routes */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <ProjectListPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/project/:id"
-          element={
-            <ProtectedRoute>
-              <ProjectDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <SettingsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
+            {/* Protected Routes */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <LazyRouteWrapper>
+                    <ProjectListPage />
+                  </LazyRouteWrapper>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/project/:id"
+              element={
+                <ProtectedRoute>
+                  <LazyRouteWrapper>
+                    <ProjectDetailPage />
+                  </LazyRouteWrapper>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <LazyRouteWrapper>
+                    <SettingsPage />
+                  </LazyRouteWrapper>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <LazyRouteWrapper>
+                    <AdminDashboard />
+                  </LazyRouteWrapper>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/security"
+              element={
+                <ProtectedRoute>
+                  <LazyRouteWrapper>
+                    <SecurityDashboard />
+                  </LazyRouteWrapper>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/tariff-database"
+              element={
+                <ProtectedRoute>
+                  <LazyRouteWrapper>
+                    <TariffDatabaseManagement />
+                  </LazyRouteWrapper>
+                </ProtectedRoute>
+              }
+            />
 
-        {/* Default redirect */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+            {/* Default redirect */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </SecurityProvider>
   );
 }
 

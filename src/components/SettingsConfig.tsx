@@ -15,7 +15,7 @@ export const APIConfig: React.FC<APIConfigProps> = ({ onUpdate }) => {
   const settingsManager = getSettingsManager();
 
   const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState('glm-4-turbo');
+  const [model, setModel] = useState('glm-4');
   const [isConfigured, setIsConfigured] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [validationResult, setValidationResult] = useState<{ valid: boolean; message: string } | null>(null);
@@ -76,7 +76,7 @@ export const APIConfig: React.FC<APIConfigProps> = ({ onUpdate }) => {
   };
 
   const models = [
-    { value: 'glm-4-turbo', label: 'GLM-4 Turbo', description: 'Latest model, fast and accurate' },
+    { value: 'glm-4', label: 'GLM-4 Turbo', description: 'Latest model, fast and accurate' },
     { value: 'glm-4', label: 'GLM-4', description: 'Previous version, stable' },
     { value: 'glm-3-turbo', label: 'GLM-3 Turbo', description: 'Older model, faster but less capable' }
   ];

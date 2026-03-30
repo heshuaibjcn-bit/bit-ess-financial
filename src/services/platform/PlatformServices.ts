@@ -27,7 +27,7 @@ export interface LLMProvider {
 export class GLMProvider implements LLMProvider {
   name = 'GLM';
   baseURL = 'https://open.bigmodel.cn/api/paas/v4/chat/completions';
-  models = ['glm-4-turbo', 'glm-4', 'glm-3-turbo'];
+  models = ['glm-4', 'glm-4', 'glm-3-turbo'];
 
   validateApiKey(key: string): boolean {
     return key.length >= 20;

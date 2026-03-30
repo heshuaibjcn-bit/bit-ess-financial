@@ -17,7 +17,7 @@ import { parseSSEStream, createMockStream } from './StreamHandler';
  * Default configuration
  */
 const DEFAULT_CONFIG: AIServiceConfig = {
-  provider: 'mock',
+  provider: (import.meta.env.VITE_AI_PROVIDER as any) || 'glm',
   maxTokens: 2000,
   temperature: 0.7,
   streamEnabled: true,
@@ -30,7 +30,12 @@ export class AIChatService {
   private config: AIServiceConfig;
 
   constructor(config: Partial<AIServiceConfig> = {}) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.config = {
+      ...DEFAULT_CONFIG,
+      ...config,
+      // 如果提供了 apiKey，覆盖默认值
+      apiKey: config.apiKey || import.meta.env.VITE_GLM_API_KEY || import.meta.env.VITE_ANTHROPIC_API_KEY,
+    };
   }
 
   /**

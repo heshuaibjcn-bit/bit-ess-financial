@@ -227,7 +227,7 @@ class GLMClient {
           logger.logError({
             agentType: this.agentType,
             agentName: this.agentName,
-            model: 'glm-4-turbo',
+            model: 'glm-4',
             error: `Retry ${attempt + 1}/${this.retryConfig.maxRetries} after ${delay}ms: ${error.message}`,
             requestId,
           });
@@ -243,7 +243,7 @@ class GLMClient {
           logger.logError({
             agentType: this.agentType,
             agentName: this.agentName,
-            model: 'glm-4-turbo',
+            model: 'glm-4',
             error: `Max retries (${this.retryConfig.maxRetries}) reached: ${error.message}`,
             requestId,
           });
@@ -426,7 +426,12 @@ export class NanoAgent {
    * Get API key from localStorage or environment
    */
   protected getApiKey(): string | undefined {
-    // Try localStorage first (now for GLM API key)
+    // Try environment variable first (Vite exposes VITE_ prefixed variables)
+    if (import.meta.env.VITE_GLM_API_KEY) {
+      return import.meta.env.VITE_GLM_API_KEY;
+    }
+
+    // Fallback to localStorage for runtime configuration
     const userKey = localStorage.getItem('glm_api_key');
     if (userKey) {
       return userKey;
@@ -438,11 +443,6 @@ export class NanoAgent {
       // Migrate to new key name
       localStorage.setItem('glm_api_key', oldKey);
       return oldKey;
-    }
-
-    // Try environment variable
-    if (import.meta.env.VITE_GLM_API_KEY) {
-      return import.meta.env.VITE_GLM_API_KEY;
     }
 
     return undefined;

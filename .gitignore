@@ -66,3 +66,4 @@ Thumbs.db
 # Lock files (optional - uncomment if needed)
 # package-lock.json
 .gstack/
+.env
