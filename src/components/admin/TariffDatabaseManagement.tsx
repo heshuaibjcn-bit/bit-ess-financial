@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { Database, RefreshCw, History, Download, Upload, Bot, CheckCircle, XCircle, AlertCircle, FileText, DollarSign, Clock, ArrowLeft } from 'lucide-react';
 import { getLocalTariffRepository } from '@/repositories/LocalTariffRepository';
 import { getLocalTariffUpdateAgent } from '@/services/agents/LocalTariffUpdateAgent';
+import { LLMConsole, useLogCollector } from './LLMConsole';
 import type {
   TariffProvince,
   TariffVersion,
@@ -31,6 +32,9 @@ export function TariffDatabaseManagement() {
   const [showDataSources, setShowDataSources] = useState(false);
   const [provinceError, setProvinceError] = useState<string | null>(null);
 
+  // LLM Console日志收集
+  const { logs, addLog, clearLogs, info, success, warning, error } = useLogCollector();
+
   const repository = getLocalTariffRepository();
   const agent = getLocalTariffUpdateAgent();
 
@@ -42,11 +46,18 @@ export function TariffDatabaseManagement() {
   const initializeDatabase = async () => {
     try {
       setLoading(true);
+      info('正在初始化电价数据库...', undefined, 'Database');
+
       await repository.initialize();
+      success('数据库初始化成功', 'IndexedDB 已就绪', 'Database');
+
       await loadProvinces();
       await loadPendingApprovals();
-    } catch (error) {
-      console.error('Failed to initialize database:', error);
+
+      success('系统初始化完成', `已加载 ${provinces.length} 个省份`, 'System');
+    } catch (err) {
+      error('数据库初始化失败', (err as Error).message, 'Database');
+      console.error('Failed to initialize database:', err);
     } finally {
       setLoading(false);
     }
@@ -65,20 +76,32 @@ export function TariffDatabaseManagement() {
   const loadProvinceDetail = async (provinceCode: string) => {
     setLoadingProvince(true);
     setProvinceError(null);
+
+    const provinceName = provinces.find(p => p.code === provinceCode)?.name || provinceCode;
+    info(`加载 ${provinceName} 详情`, `省份代码: ${provinceCode}`, 'Database');
+
     try {
       const detail = await repository.getActiveTariffByProvince(provinceCode);
       setProvinceDetail(detail);
 
       if (!detail) {
+        warning('数据未找到', `${provinceName} 暂无电价数据`, 'Database');
         setProvinceError(`该省份暂无电价数据`);
+      } else {
+        success('数据加载成功', `版本: ${detail.version.version}, 生效日期: ${detail.version.effectiveDate}`, 'Database');
       }
 
       // 加载该省份的更新日志
       const logs = await repository.getUpdateLogs(provinceCode, 10);
       setUpdateLogs(logs);
-    } catch (error) {
-      console.error('Failed to load province detail:', error);
-      setProvinceError('加载省份数据失败：' + (error as Error).message);
+
+      if (logs.length > 0) {
+        info('更新历史', `找到 ${logs.length} 条记录`, 'Database');
+      }
+    } catch (err) {
+      error('加载失败', (err as Error).message, 'Database');
+      console.error('Failed to load province detail:', err);
+      setProvinceError('加载省份数据失败：' + (err as Error).message);
     } finally {
       setLoadingProvince(false);
     }
@@ -137,13 +160,22 @@ export function TariffDatabaseManagement() {
 
   const handleApprove = async (updateId: string) => {
     try {
+      const update = pendingApprovals.find(u => u.id === updateId);
+      const provinceName = provinces.find(p => p.id === update?.provinceId)?.name || '未知省份';
+
+      info(`审批通过 ${provinceName}`, `更新ID: ${updateId}`, 'Approval');
+
       await repository.approveUpdate(updateId, 'admin');
+
+      success('审批成功', `已激活 ${provinceName} 的新电价数据`, 'Approval');
       alert('审批通过！');
+
       await loadPendingApprovals();
       if (selectedProvince) {
         loadProvinceDetail(selectedProvince);
       }
     } catch (error) {
+      error('审批失败', (error as Error).message, 'Approval');
       console.error('Failed to approve:', error);
       alert('审批失败：' + (error as Error).message);
     }
@@ -154,8 +186,23 @@ export function TariffDatabaseManagement() {
     if (!reason) return;
 
     try {
+      const update = pendingApprovals.find(u => u.id === updateId);
+      const provinceName = provinces.find(p => p.id === update?.provinceId)?.name || '未知省份';
+
+      warning(`拒绝更新 ${provinceName}`, `原因: ${reason}`, 'Approval');
+
       await repository.rejectUpdate(updateId, 'admin', reason);
+
+      success('已拒绝更新', `更新已标记为拒绝状态`, 'Approval');
       alert('已拒绝更新');
+
+      await loadPendingApprovals();
+    } catch (error) {
+      error('拒绝失败', (error as Error).message, 'Approval');
+      console.error('Failed to reject:', error);
+      alert('操作失败：' + (error as Error).message);
+    }
+  };
       await loadPendingApprovals();
     } catch (error) {
       console.error('Failed to reject:', error);
@@ -165,26 +212,50 @@ export function TariffDatabaseManagement() {
 
   const handleCheckSingleUpdate = async () => {
     if (!selectedProvince) {
+      warning('请先选择省份', undefined, 'UI');
       alert('请先选择省份');
       return;
     }
+
+    const provinceName = provinces.find(p => p.code === selectedProvince)?.name || selectedProvince;
 
     setIsCheckingUpdates(true);
     setUpdateResults([]);
 
     try {
+      info(`开始检查 ${provinceName} (${selectedProvince}) 电价更新`, undefined, 'Agent');
+      info('连接到智能体服务...', undefined, 'Agent');
+
       const result = await agent.checkProvinceUpdate(selectedProvince);
+
       setUpdateResults([result]);
 
       if (result.success) {
+        if (result.parsed) {
+          success('数据解析成功', `文号: ${result.parsed.policyNumber}`, 'Parser');
+          info('政策标题', result.parsed.policyTitle, 'Parser');
+          info('生效日期', result.parsed.effectiveDate, 'Parser');
+          info('电价数据', `${result.parsed.tariffs.length} 个电压等级`, 'Parser');
+          info('时段配置', `峰时${result.parsed.timePeriods.peakHours.length}h 谷时${result.parsed.timePeriods.valleyHours.length}h`, 'Parser');
+        }
+
+        if (result.requiresApproval) {
+          warning('发现新版本', `版本ID: ${result.versionId}`, 'Approval');
+          info('创建待审批记录', '等待管理员确认', 'Approval');
+          await loadPendingApprovals();
+        } else {
+          success('已是最新版本', '无需更新', 'Agent');
+        }
+
         alert(`检查完成！${result.requiresApproval ? '新数据需要审批' : '无新数据'}`);
-        await loadPendingApprovals();
       } else {
+        error('检查失败', result.error || '未知错误', 'Agent');
         alert(`检查失败：${result.error}`);
       }
-    } catch (error) {
-      console.error('Failed to check update:', error);
-      alert('检查更新失败：' + (error as Error).message);
+    } catch (err) {
+      error('检查异常', (err as Error).message, 'Agent');
+      console.error('Failed to check update:', err);
+      alert('检查更新失败：' + (err as Error).message);
     } finally {
       setIsCheckingUpdates(false);
     }
@@ -195,20 +266,33 @@ export function TariffDatabaseManagement() {
     setUpdateResults([]);
 
     try {
+      info('开始批量检查所有省份', '启用数据源数量: 3', 'Agent');
+
       const results = await agent.checkAllProvinces();
       setUpdateResults(results);
 
       const successCount = results.filter(r => r.success).length;
       const newVersionCount = results.filter(r => r.success && r.requiresApproval).length;
 
+      results.forEach((result, index) => {
+        if (result.success) {
+          success(`${result.provinceCode} 检查完成`, result.requiresApproval ? '发现新版本' : '已是最新', 'Agent');
+        } else {
+          error(`${result.provinceCode} 检查失败`, result.error || '未知错误', 'Agent');
+        }
+      });
+
+      success('批量检查完成', `成功: ${successCount}/${results.length}, 新版本: ${newVersionCount} 个`, 'Agent');
+
       alert(`检查完成！\n成功：${successCount}/${results.length}\n新版本：${newVersionCount} 个`);
 
       if (newVersionCount > 0) {
         await loadPendingApprovals();
       }
-    } catch (error) {
-      console.error('Failed to check updates:', error);
-      alert('批量检查失败：' + (error as Error).message);
+    } catch (err) {
+      error('批量检查异常', (err as Error).message, 'Agent');
+      console.error('Failed to check updates:', err);
+      alert('批量检查失败：' + (err as Error).message);
     } finally {
       setIsCheckingUpdates(false);
     }
@@ -235,16 +319,28 @@ export function TariffDatabaseManagement() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* 页头 */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Database className="w-8 h-8" />
-            全国电价数据库
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            管理全国{provinces.length}个省份的电价数据、版本历史和智能更新
+    <div className="flex h-screen bg-gray-50">
+      {/* 第一栏：LLM Console */}
+      <div className="w-80 flex-shrink-0 border-r border-gray-300">
+        <LLMConsole
+          logs={logs}
+          onClear={clearLogs}
+          isVisible={true}
+        />
+      </div>
+
+      {/* 第二栏：主内容区域 */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="container mx-auto p-6 space-y-6">
+          {/* 页头 */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold flex items-center gap-2">
+                <Database className="w-8 h-8" />
+                全国电价数据库
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                管理全国{provinces.length}个省份的电价数据、版本历史和智能更新
           </p>
         </div>
         <div className="flex gap-2">
@@ -1019,6 +1115,8 @@ export function TariffDatabaseManagement() {
               <li>• 浏览器本地存储</li>
             </ul>
           </div>
+        </div>
+      </div>
         </div>
       </div>
     </div>
