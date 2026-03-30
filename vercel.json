@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server/tariff-crawler-api.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/tariff/(.*)",
+      "dest": "server/tariff-crawler-api.ts"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
