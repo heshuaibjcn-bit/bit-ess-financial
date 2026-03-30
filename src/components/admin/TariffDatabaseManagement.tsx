@@ -203,12 +203,6 @@ export function TariffDatabaseManagement() {
       alert('操作失败：' + (error as Error).message);
     }
   };
-      await loadPendingApprovals();
-    } catch (error) {
-      console.error('Failed to reject:', error);
-      alert('操作失败：' + (error as Error).message);
-    }
-  };
 
   const handleCheckSingleUpdate = async () => {
     if (!selectedProvince) {
