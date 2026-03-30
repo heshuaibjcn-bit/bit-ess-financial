@@ -88,6 +88,13 @@ export class LocalTariffUpdateAgent {
       parser: 'ndrc',
       enabled: true,
     },
+    {
+      name: '安徽省发改委',
+      url: 'http://fzggw.ah.gov.cn/',
+      provinceCode: 'AH',
+      parser: 'ndrc',
+      enabled: true,
+    },
   ];
 
   /**
@@ -164,6 +171,25 @@ export class LocalTariffUpdateAgent {
           break;
         case 'JS':
           crawlResult = await this.crawler.crawlJiangsu();
+          break;
+        case 'AH':
+          // Anhui province - use mock data for now
+          console.warn(`[Agent] No crawler for ${provinceCode}, using mock data`);
+          crawlResult = {
+            success: true,
+            data: {
+              notice: {
+                title: `关于调整${this.getProvinceName(provinceCode)}销售电价的通知`,
+                url: 'https://example.com/policy',
+                publishDate: new Date().toISOString().split('T')[0],
+                source: this.getProvinceName(provinceCode),
+                type: 'html' as const,
+              },
+              parsed: await this.mockFetchTariffNotice(provinceCode),
+            },
+            source: 'mock',
+            crawledAt: new Date().toISOString(),
+          };
           break;
         default:
           // 对于不支持的省份，使用模拟数据
@@ -242,6 +268,7 @@ export class LocalTariffUpdateAgent {
       'GD': '广东省',
       'ZJ': '浙江省',
       'JS': '江苏省',
+      'AH': '安徽省',
       'SD': '山东省',
       'SH': '上海市',
       'BJ': '北京市',
@@ -385,6 +412,7 @@ export class LocalTariffUpdateAgent {
       'GD': '广东省',
       'ZJ': '浙江省',
       'JS': '江苏省',
+      'AH': '安徽省',
       'SD': '山东省',
       'SH': '上海市',
       'BJ': '北京市',
