@@ -57,6 +57,11 @@ export function useAIChat() {
    * Send message to AI
    */
   const sendMessage = useCallback(async (userMessage: string): Promise<void> => {
+    // Prevent concurrent sends - if AI is already thinking, ignore new requests
+    if (isAiThinking) {
+      return;
+    }
+
     if (!currentProject || !result) {
       setChatError('Please complete the project calculation first');
       setChatErrorType('invalid_request');
@@ -160,6 +165,7 @@ export function useAIChat() {
       streamingMessageIdRef.current = null;
     }
   }, [
+    isAiThinking,
     currentProject,
     result,
     benchmarkComparison,
@@ -167,6 +173,7 @@ export function useAIChat() {
     language,
     addChatMessage,
     updateChatMessage,
+    updateMessageStreamingState,
     setIsAiThinking,
     setChatError,
     setChatErrorType,
