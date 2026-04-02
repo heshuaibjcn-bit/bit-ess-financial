@@ -4,6 +4,7 @@
  * Creates system and user prompts for energy storage investment analysis
  */
 
+import { formatContextAsText } from './ContextBuilder';
 import type { ProjectAnalysisContext } from '@/types/ai';
 
 /**
@@ -84,7 +85,6 @@ export function buildUserPrompt(
     : `# Energy Storage Project Investment Analysis\n\n`;
 
   // Add formatted context
-  const { formatContextAsText } = require('./ContextBuilder');
   prompt += formatContextAsText(context, language);
 
   // Add user question
@@ -134,7 +134,6 @@ export function buildFollowUpPrompt(
   }
 
   // Add project context (abbreviated)
-  const { formatContextAsText } = require('./ContextBuilder');
   prompt += isZh ? `## 项目数据\n` : `## Project Data\n`;
   prompt += formatContextAsText(context, language);
 
