@@ -26,6 +26,7 @@ export function useAIChat() {
   // Store actions
   const addChatMessage = useUIStore((state) => state.addChatMessage);
   const updateChatMessage = useUIStore((state) => state.updateChatMessage);
+  const updateMessageStreamingState = useUIStore((state) => state.updateMessageStreamingState);
   const clearChatMessages = useUIStore((state) => state.clearChatMessages);
   const setIsAiThinking = useUIStore((state) => state.setIsAiThinking);
   const setChatError = useUIStore((state) => state.setChatError);
@@ -115,16 +116,9 @@ export function useAIChat() {
           setChatErrorType('unknown');
           break;
         } else if (event.type === 'done') {
-          // Mark streaming complete
+          // Mark streaming complete - update content and clear streaming flag
           updateChatMessage(assistantMsg.id, fullContent);
-          // Update message to remove streaming flag
-          const updatedMsg: ChatMessage = {
-            ...assistantMsg,
-            content: fullContent,
-            isStreaming: false,
-          };
-          // We need to update the message in the store to remove the streaming flag
-          // For now, the content is already updated
+          updateMessageStreamingState(assistantMsg.id, false);
           break;
         }
       }
@@ -133,11 +127,9 @@ export function useAIChat() {
       setChatError(errorMessage);
       setChatErrorType('unknown');
 
-      // Update message with error
-      updateChatMessage(
-        assistantMsg.id,
-        `Error: ${errorMessage}`
-      );
+      // Update message with error and clear streaming flag
+      updateChatMessage(assistantMsg.id, `Error: ${errorMessage}`);
+      updateMessageStreamingState(assistantMsg.id, false);
     } finally {
       setIsAiThinking(false);
       streamingMessageIdRef.current = null;
