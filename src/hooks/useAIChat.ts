@@ -27,6 +27,7 @@ export function useAIChat() {
   const addChatMessage = useUIStore((state) => state.addChatMessage);
   const updateChatMessage = useUIStore((state) => state.updateChatMessage);
   const updateMessageStreamingState = useUIStore((state) => state.updateMessageStreamingState);
+  const removeChatMessage = useUIStore((state) => state.removeChatMessage);
   const clearChatMessages = useUIStore((state) => state.clearChatMessages);
   const setIsAiThinking = useUIStore((state) => state.setIsAiThinking);
   const setChatError = useUIStore((state) => state.setChatError);
@@ -189,19 +190,19 @@ export function useAIChat() {
       .find(msg => msg.role === 'user');
 
     if (lastUserMessage) {
-      // Remove last assistant message if exists
+      // Remove last assistant message if it exists
       const lastAssistantMessage = [...chatMessages]
         .reverse()
         .find(msg => msg.role === 'assistant');
 
-      if (lastAssistantMessage && streamingMessageIdRef.current !== lastAssistantMessage.id) {
-        // For now, we just send a new message
-        // In a full implementation, we'd remove the last assistant message
+      if (lastAssistantMessage) {
+        // Remove the failed assistant message before retrying
+        removeChatMessage(lastAssistantMessage.id);
       }
 
       await sendMessage(lastUserMessage.content);
     }
-  }, [chatMessages, sendMessage]);
+  }, [chatMessages, sendMessage, removeChatMessage]);
 
   // Cleanup on unmount - clear any pending timeout
   useEffect(() => {

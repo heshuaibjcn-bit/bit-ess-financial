@@ -74,6 +74,7 @@ interface UIState {
   addChatMessage: (message: ChatMessage) => void;
   updateChatMessage: (id: string, content: string) => void;
   updateMessageStreamingState: (id: string, isStreaming: boolean) => void;
+  removeChatMessage: (id: string) => void;
   clearChatMessages: () => void;
   setIsAiThinking: (thinking: boolean) => void;
   setInputMessage: (message: string) => void;
@@ -225,6 +226,12 @@ export const useUIStore = create<UIState>()(
           chatMessages: state.chatMessages.map((msg) =>
             msg.id === id ? { ...msg, isStreaming } : msg
           ),
+        }));
+      },
+
+      removeChatMessage: (id) => {
+        set((state) => ({
+          chatMessages: state.chatMessages.filter((msg) => msg.id !== id),
         }));
       },
 
