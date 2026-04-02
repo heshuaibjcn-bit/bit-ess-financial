@@ -79,6 +79,31 @@ export type {
   Chart,
 } from './ReportGenerationAgent';
 
+// New AI agents for investment report generation
+export { PolicyAnalysisAgent } from './PolicyAnalysisAgent';
+export type {
+  PolicyAnalysisInput,
+  PolicyAnalysisResult,
+} from './PolicyAnalysisAgent';
+
+export { TechnicalProposalAgent } from './TechnicalProposalAgent';
+export type {
+  TechnicalProposalInput,
+  TechnicalProposalResult,
+} from './TechnicalProposalAgent';
+
+export { RiskAssessmentAgent } from './RiskAssessmentAgent';
+export type {
+  RiskAssessmentInput,
+  RiskAssessmentResult,
+} from './RiskAssessmentAgent';
+
+export { ReportNarrativeAgent } from './ReportNarrativeAgent';
+export type {
+  NarrativeInput,
+  NarrativeResult,
+} from './ReportNarrativeAgent';
+
 export { getCommunicationLogger } from './AgentCommunicationLogger';
 export type { CommunicationLog, AgentMetrics } from './AgentCommunicationLogger';
 

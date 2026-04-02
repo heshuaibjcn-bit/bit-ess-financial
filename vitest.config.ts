@@ -41,9 +41,9 @@ export default defineConfig({
       },
       all: true,
     },
-    testTimeout: 10000,
-    hookTimeout: 10000,
-    teardownTimeout: 10000,
+    testTimeout: 300000, // 5 minutes for AI-based tests
+    hookTimeout: 60000, // 1 minute for hooks
+    teardownTimeout: 60000, // 1 minute for teardown
     isolate: true,
     bail: 1,
     onConsoleLog: (log) => {

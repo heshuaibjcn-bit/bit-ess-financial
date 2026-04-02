@@ -14,6 +14,7 @@ import { useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { useCalculator } from '../../hooks/useCalculator';
 import { EngineResult } from '../../domain/services/CalculationEngine';
+import { InvestmentReportButton } from '../Export/InvestmentReportButton';
 
 export const ReportOutputStep: React.FC = () => {
   const { t } = useTranslation();
@@ -107,7 +108,7 @@ export const ReportOutputStep: React.FC = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <button
           onClick={() => setShowPreview(!showPreview)}
           className="flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -150,6 +151,14 @@ export const ReportOutputStep: React.FC = () => {
           </svg>
           <span>{t('calculator.reportOutput.share')}</span>
         </button>
+
+        {/* AI Investment Report Button */}
+        <InvestmentReportButton
+          variant="button"
+          onReportStart={() => console.log('Investment report generation started')}
+          onReportComplete={(result) => console.log('Investment report complete:', result)}
+          onReportError={(error) => console.error('Investment report error:', error)}
+        />
       </div>
 
       {/* Report Preview */}
