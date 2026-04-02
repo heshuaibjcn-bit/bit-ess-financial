@@ -156,9 +156,26 @@
   <div id="results"></div>
 
   <script type="module">
-    // Import the agent
+    // Import the agent and database
     const agentModule = await import('./src/services/agents/LocalTariffUpdateAgent.ts');
     const { getLocalTariffUpdateAgent } = agentModule;
+    
+    const dbModule = await import('./src/services/database/LocalTariffDatabase.ts');
+    const { getLocalTariffDatabase } = dbModule;
+    
+    // Initialize database
+    let dbInitialized = false;
+    async function initializeDatabase() {
+      if (dbInitialized) return;
+      try {
+        const db = getLocalTariffDatabase();
+        await db.initialize();
+        console.log('[Test] Database initialized successfully');
+        dbInitialized = true;
+      } catch (error) {
+        console.error('[Test] Failed to initialize database:', error);
+      }
+    }
 
     function addResult(title, status, message, details = null) {
       const resultsDiv = document.getElementById('results');
@@ -214,6 +231,9 @@
     }
 
     window.testMockData = async function() {
+      // Ensure database is initialized
+      await initializeDatabase();
+      
       addResult('开始测试', 'pass', '测试模拟数据（安徽省 AH）');
 
       try {
@@ -265,6 +285,9 @@
     };
 
     window.testRealData = async function() {
+      // Ensure database is initialized
+      await initializeDatabase();
+      
       addResult('开始测试', 'pass', '测试真实爬虫数据（广东省 GD）');
 
       try {

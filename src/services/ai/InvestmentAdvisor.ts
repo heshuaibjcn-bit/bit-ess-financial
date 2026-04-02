@@ -127,6 +127,7 @@ export class AIInvestmentAdvisor {
 
     this.anthropic = new Anthropic({
       apiKey: this.config.apiKey,
+      dangerouslyAllowBrowser: true,
     });
   }
 

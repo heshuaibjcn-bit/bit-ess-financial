@@ -295,7 +295,7 @@ export type Geography = z.infer<typeof GeographySchema>;
 export const DataMetadataSchema = z.object({
   // Data source
   dataSource: z.string().optional(), // Where data came from
-  sourceUrl: z.string().url().optional(), // URL to source document
+  sourceUrl: z.string().regex(/^https?:\/\/.+/, 'Invalid url').optional(), // URL to source document
   sourceType: z.enum(['official', 'industry-report', 'news', 'estimated']).optional(),
 
   // Validation status

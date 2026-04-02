@@ -49,67 +49,50 @@ test.describe('Critical Path 1: New User Onboarding', () => {
     expect(hasHTML).toBe(true);
   });
 
-  test.skip('should have React app mounted', async ({ page }) => {
-    // Skipping - this test has timing issues with React mounting
-    // The app loads correctly, just needs more time to mount
+  test('should have React app mounted', async ({ page }) => {
     await page.goto('/');
 
-    // Wait for page to load
-    await page.waitForLoadState('domcontentloaded');
+    // Wait for network to be idle (React has loaded)
+    await page.waitForLoadState('networkidle');
 
-    // Give React extra time to mount
-    await page.waitForTimeout(5000);
-
-    // Verify root has content
-    const rootExists = await page.locator('#root').count();
-    expect(rootExists).toBe(1);
-
+    // Verify root has content with retry
+    await expect(page.locator('#root')).toBeAttached();
+    
+    // Check React rendered content
     const hasContent = await page.evaluate(() => {
       const root = document.querySelector('#root');
-      return root ? root.innerHTML.length > 100 : false;
+      return root ? root.children.length > 0 : false;
     });
 
     expect(hasContent).toBe(true);
   });
 
-  test.skip('should display main heading', async ({ page }) => {
-    // Skipping - timing issue with React rendering
+  test('should display main heading', async ({ page }) => {
     await page.goto('/');
 
-    // Wait for page
-    await page.waitForLoadState('domcontentloaded');
-
-    // Give React time to render
-    await page.waitForTimeout(5000);
+    // Wait for React to render
+    await page.waitForLoadState('networkidle');
 
     // Check for heading
-    const hasHeading = await page.evaluate(() => {
-      const headings = document.querySelectorAll('h1, h2, h3');
-      return headings.length > 0;
-    });
-
-    expect(hasHeading).toBe(true);
+    const headings = page.locator('h1, h2, h3');
+    await expect(headings.first()).toBeVisible();
   });
 
-  test.skip('should have interactive elements', async ({ page }) => {
-    // Skipping - timing issue with React rendering
+  test('should have interactive elements', async ({ page }) => {
     await page.goto('/');
 
-    // Wait for page
-    await page.waitForLoadState('domcontentloaded');
-
-    // Give React time to render
-    await page.waitForTimeout(5000);
+    // Wait for React to render
+    await page.waitForLoadState('networkidle');
 
     // Check for interactive elements
-    const interactiveElements = await page.evaluate(() => {
-      const buttons = document.querySelectorAll('button');
-      const inputs = document.querySelectorAll('input');
-      const selects = document.querySelectorAll('select');
-      return buttons.length + inputs.length + selects.length;
-    });
-
-    expect(interactiveElements).toBeGreaterThan(0);
+    const buttons = page.locator('button');
+    const inputs = page.locator('input');
+    
+    // Should have at least one button or input
+    const buttonCount = await buttons.count();
+    const inputCount = await inputs.count();
+    
+    expect(buttonCount + inputCount).toBeGreaterThan(0);
   });
 });
 

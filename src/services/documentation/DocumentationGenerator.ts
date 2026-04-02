@@ -471,23 +471,24 @@ ${config.license}
   /**
    * Generate CHANGELOG
    */
-  generateCHANGELOG(changes: Array<{
-    version: string;
-    date: string;
-    changes: {
-      added?: string[];
-      changed?: string[];
-      deprecated?: string[];
-      removed?: string[];
-      fixed?: string[];
-      security?: string[];
-    };
-  }): string {
+
+  /**
+   * Generate CHANGELOG
+   */
+  generateCHANGELOG(changes: ChangelogEntry[]): string {
     let changelog = `# Changelog\n\nAll notable changes to this project will be documented in this file.\n\n`;
 
     changes.forEach(({ version, date, changes: versionChanges }) => {
       changelog += `## [${version}] - ${date}\n\n`;
 
+      const sections = [
+        { key: 'added', title: 'Added' },
+        { key: 'changed', title: 'Changed' },
+        { key: 'deprecated', title: 'Deprecated' },
+        { key: 'removed', title: 'Removed' },
+        { key: 'fixed', title: 'Fixed' },
+        { key: 'security', title: 'Security' },
+      ];
       const sections = [
         { key: 'added', title: 'Added' },
         { key: 'changed', title: 'Changed' },

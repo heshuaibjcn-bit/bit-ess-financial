@@ -207,3 +207,68 @@
   - 43 comprehensive security tests (all passing)
   - All input vectors protected against OWASP Top 10 threats
 
+## Design & UX
+
+### DESIGN.md creation
+- **What:** Create DESIGN.md documenting the design system (CSS variables, typography scale, spacing, component patterns, color palette)
+- **Why:** Currently no design documentation; developers must reverse-engineer patterns from code. A DESIGN.md ensures consistency as the team grows and features are added.
+- **Pros:** Single source of truth for design decisions, faster onboarding for new devs, prevents design drift, enables design system tooling
+- **Cons:** Initial documentation effort, maintenance as design evolves
+- **Context:** Identified gap in design review — codebase has consistent patterns but no documentation. Without DESIGN.md, future features may inadvertently break established conventions.
+- **Depends on / blocked by:** None — can be done anytime
+- **Estimated effort:** 2-4 hours to document observed patterns from `src/index.css` and component files
+
+### AI chat accessibility audit
+- **What:** Conduct full accessibility audit on implemented AI chat components (keyboard nav, screen reader, color contrast, touch targets)
+- **Why:** The plan specifies a11y requirements (ARIA labels, keyboard shortcuts, WCAG compliance) but implementation needs verification
+- **Pros:** Ensures WCAG 2.1 AA compliance, catches a11y regressions, documents a11y patterns for future features
+- **Cons:** Requires screen reader testing (NVDA/JAWS), keyboard-only testing, contrast checker tools
+- **Context:** Accessibility requirement — enterprise financial tools must be usable by investors with disabilities
+- **Depends on / blocked by:** AI chat implementation (Week 2-3 per plan)
+- **Estimated effort:** 4-6 hours for full audit + fixes
+
+### AI chat streaming state bug fix
+- **What:** Fix the critical bug where the `isStreaming` flag is set but never cleared, leaving messages in permanent 'loading' state
+- **Why:** This breaks UI behavior - inputs stay disabled, loading indicators persist, and users think the feature is broken. The code has a TODO comment acknowledging this issue (useAIChat.ts:119-128)
+- **Pros:** Restores correct UI behavior, improves user experience, fixes broken loading indicators
+- **Cons:** Minor bug fix, low risk
+- **Context:** Critical bug affecting all AI chat conversations. Located in `src/hooks/useAIChat.ts:119-128`
+- **Depends on / blocked by:** None — straightforward bug fix
+- **Estimated effort:** 30 minutes
+
+### AI chat test suite
+- **What:** Implement comprehensive test coverage for AI chat functionality including unit tests (hooks, services, streaming), integration tests (SSE parsing, error handling), and E2E tests (user flows, edge cases)
+- **Why:** Currently 0% test coverage with 100+ untested code paths. High regression risk. Any code change could break the feature with no safety net.
+- **Pros:** Catches regressions, documents expected behavior, enables confident refactoring, proves feature works
+- **Cons:** Initial test writing effort, ongoing maintenance
+- **Context:** Critical gap — core user-facing feature with zero tests. Covers: sendMessage, clearChat, retry, streaming, errors, edge cases
+- **Depends on / blocked by:** None — but should be done before further feature development
+- **Estimated effort:** 1-2 days for full coverage (unit + integration + E2E)
+
+### AI chat backend proxy (Phase 2)
+- **What:** Implement backend proxy service to securely manage API keys instead of storing them in localStorage (Phase 2 from original plan)
+- **Why:** **PRODUCTION BLOCKER.** Current implementation stores API keys in localStorage, which is vulnerable to XSS attacks. The plan acknowledges this as a temporary Phase 1 approach but it's a security vulnerability.
+- **Pros:** Eliminates XSS attack vector for API keys, enables secure production deployment, aligns with security best practices
+- **Cons:** Requires backend infrastructure (Node.js service or Vite SSR), additional deployment complexity
+- **Context:** Security requirement — cannot safely deploy to production with current architecture. Plan's Phase 2 describes Vite SSR or standalone Node.js service
+- **Depends on / blocked by:** Backend infrastructure decision (Vite SSR vs standalone Node.js)
+- **Estimated effort:** 2-3 days for backend proxy implementation
+
+### AI chat performance safeguards
+- **What:** Add performance safeguards: timeout wrapper (use existing `withStreamTimeout`), AbortController for request cancellation, and request debouncing/throttling
+- **Why:** Current implementation can hang indefinitely (no timeout), has memory leaks (no cancellation on unmount), and allows request spamming (no rate limiting). Causes poor UX and wasted API costs.
+- **Pros:** Prevents frozen UI, eliminates memory leaks, reduces API quota waste, improves perceived performance
+- **Cons:** Adds cancellation complexity, requires refactoring sendMessage hook
+- **Context:** Performance issues identified in review. Timeout function exists in StreamHandler.ts but is unused. Cancellation prevents memory leaks.
+- **Depends on / blocked by:** None — straightforward improvements
+- **Estimated effort:** 2 hours
+
+### AI chat i18n fix
+- **What:** Fix hard-coded Chinese text in ChatMessageList component (lines 43-47) to use i18n translation system
+- **Why:** Violates i18n principle. English users see Chinese welcome message: "我可以帮助您分析储能项目的投资价值、风险评估和优化建议。请提出您的问题！"
+- **Pros:** Proper internationalization, better UX for English users, consistent with rest of app
+- **Cons:** Minor i18n fix, low effort
+- **Context:** Internationalization requirement — app supports Chinese/English, but AI chat welcome message is hard-coded in Chinese
+- **Depends on / blocked by:** None — simple text replacement
+- **Estimated effort:** 30 minutes
+

@@ -1,7 +1,8 @@
 /**
  * Tabs Component
- *
- * Simple tabs component for organizing content
+ * 
+ * Minimal business-style tabs for organizing content.
+ * White & Blue color palette.
  */
 
 import React, { useState, Children, ReactElement, cloneElement, isValidElement } from 'react';
@@ -44,7 +45,6 @@ export const Tabs: React.FC<TabsProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState(defaultValue);
 
-  // Enhance children to pass activeTab context
   const enhancedChildren = Children.map(children, (child) => {
     if (isValidElement(child)) {
       return cloneElement(child as ReactElement<any>, { activeTab, setActiveTab });
@@ -61,10 +61,9 @@ export const Tabs: React.FC<TabsProps> = ({
 
 export const TabsList: React.FC<TabsListProps> = ({ className = '', children }) => {
   return (
-    <div className={`flex space-x-8 border-b border-gray-200 ${className}`}>
+    <div className={`flex border-b border-neutral-200 ${className}`}>
       {Children.map(children, (child) => {
         if (isValidElement(child)) {
-          // @ts-ignore
           return cloneElement(child, { activeTab: child.props.value });
         }
         return child;
@@ -84,13 +83,16 @@ export const TabsTrigger: React.FC<TabsTriggerProps> = ({
   return (
     <button
       onClick={() => setActiveTab(value)}
-      className={`py-4 px-1 border-b-2 font-medium text-sm transition ${
+      className={`relative py-3 px-4 text-sm font-medium transition-colors focus:outline-none ${
         isActive
-          ? 'border-blue-500 text-blue-600'
-          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          ? 'text-primary-600'
+          : 'text-neutral-500 hover:text-neutral-700'
       } ${className}`}
     >
       {children}
+      {isActive && (
+        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 rounded-t-full" />
+      )}
     </button>
   );
 };
@@ -106,5 +108,7 @@ export const TabsContent: React.FC<TabsContentProps> = ({
     return null;
   }
 
-  return <div className={className}>{children}</div>;
+  return <div className={`animate-fade-in ${className}`}>{children}</div>;
 };
+
+export default Tabs;

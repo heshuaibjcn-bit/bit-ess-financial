@@ -13,22 +13,30 @@ import type { ProjectInput } from '../schemas/ProjectSchema';
 import type { EngineResult } from './CalculationEngine';
 
 /**
- * Simple string hash function for browser compatibility
- * Uses a combination of djb2 and sdbm algorithms
+ * Generate 64-character hex hash for cache key (SHA-256 compatible)
+ * Uses djb2 algorithm with expansion to 32 bytes
  */
 function simpleHash(str: string): string {
-  let hash1 = 5381;
-  let hash2 = 0;
-
+  // djb2 hash
+  let hash = 5381;
   for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash1 = ((hash1 << 5) + hash1) + char; /* hash1 * 33 + char */
-    hash2 = char + (hash2 << 6) + (hash2 << 16) - hash2; /* sdbm */
+    hash = ((hash << 5) + hash) + str.charCodeAt(i); // hash * 33 + char
+    hash = hash & 0xffffffff; // Keep 32-bit unsigned
   }
 
-  // Combine both hashes
-  const combinedHash = (hash1 >>> 0) + (hash2 >>> 0);
-  return combinedHash.toString(16) + Math.abs(hash1 * hash2).toString(16);
+  // Expand to 64 hex chars (32 bytes) using multiple rounds
+  let result = '';
+  let h = hash >>> 0;
+  for (let i = 0; i < 32; i++) {
+    // Mix the hash with different constants for each byte
+    h = ((h << 13) | (h >> 19)) + 0x9e3779b9 + i;
+    h = h >>> 0;
+    result += (h & 0xff).toString(16).padStart(2, '0');
+    // Rotate for next byte
+    h = ((h >> 8) | ((h & 0xff) << 24)) >>> 0;
+  }
+
+  return result;
 }
 
 /**

@@ -5,3 +5,6 @@
  */
 
 export { AdminDashboard } from './AdminDashboard';
+export { DataReviewDashboard } from './DataReviewDashboard';
+export { TariffDataComparison } from './TariffDataComparison';
+export { MonitoringDashboard } from './MonitoringDashboard';

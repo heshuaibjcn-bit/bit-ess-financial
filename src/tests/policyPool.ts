@@ -2,8 +2,8 @@
  * Policy Pool System - Test and Verification
  */
 
-import { getPolicyPool } from '../../services/policy/PolicyPoolService';
-import { getPolicyAnalyzer } from '../../services/policy/AIPolicyAnalyzer';
+import { getPolicyPool } from '../services/policy/PolicyPoolService';
+import { getPolicyAnalyzer } from '../services/policy/AIPolicyAnalyzer';
 
 export async function testPolicyPool() {
   console.log('=== Policy Pool System Test ===\n');

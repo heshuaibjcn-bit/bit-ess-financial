@@ -27,7 +27,7 @@ export const logger = <T extends object>(
     const nextState = get();
 
     if (config.enabled) {
-      if (config logActions) {
+      if (config.logActions) {
         console.log(`[${config.name}] Action`, partial);
       }
       if (config.logStateChanges) {

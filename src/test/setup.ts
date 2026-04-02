@@ -21,3 +21,10 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: vi.fn(),
   })),
 });
+
+// Mock URL.createObjectURL for PDF generation tests
+// Only mock methods, preserve URL constructor
+if (typeof URL !== 'undefined') {
+  URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+  URL.revokeObjectURL = vi.fn();
+}

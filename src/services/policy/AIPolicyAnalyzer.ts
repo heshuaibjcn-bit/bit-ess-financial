@@ -47,7 +47,10 @@ export class AIPolicyAnalyzer {
       // Access private client through reflection or create new instance
       const apiKey = this.getApiKey();
       if (apiKey) {
-        this.client = new Anthropic({ apiKey });
+        this.client = new Anthropic({ 
+          apiKey,
+          dangerouslyAllowBrowser: true 
+        });
       }
     }
   }
@@ -325,5 +328,3 @@ export function getPolicyAnalyzer(): AIPolicyAnalyzer {
   }
   return analyzerInstance;
 }
-
-export { AIPolicyAnalyzer };

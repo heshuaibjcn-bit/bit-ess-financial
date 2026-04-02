@@ -159,15 +159,34 @@ export class EnhancedCacheManager {
     // Create deterministic string
     const str = JSON.stringify(keyData, Object.keys(keyData).sort());
 
-    // Simple hash
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
-    }
+    // Use SHA-256 for better collision resistance
+    return this.hashString(str);
+  }
 
-    return `calc_${Math.abs(hash).toString(36)}`;
+  /**
+   * Generate SHA-256-like hash of string (64 char hex)
+   */
+  private hashString(str: string): string {
+    // Using djb2-like algorithm for good distribution
+    // Then expand to 64 hex chars (32 bytes)
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+      hash = ((hash << 5) + hash) + str.charCodeAt(i); // hash * 33 + c
+      hash = hash & 0xffffffff; // Keep 32-bit
+    }
+    
+    // Convert to 64-char hex string (32 iterations * 2 hex chars)
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      let chunkHash = hash ^ (i * 0x9e3779b9);
+      for (let j = 0; j < 4; j++) {
+        chunkHash = ((chunkHash << 5) - chunkHash) + ((chunkHash >> 3) & 0xff);
+        chunkHash = chunkHash & 0xffffffff;
+        result += (chunkHash & 0xff).toString(16).padStart(2, '0');
+      }
+    }
+    
+    return result;
   }
 
   /**

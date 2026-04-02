@@ -1,25 +1,22 @@
 /**
  * Main App Component
- *
- * C&I Energy Storage Investment Calculator
- * Now with authentication and cloud project management!
+ * 
+ * ESS Financial - C&I Energy Storage Investment Calculator
+ * Minimal business style with white & blue color palette
  */
 
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import './i18n/config'; // Initialize i18n
+import './i18n/config';
 import './index.css';
 
-// Import providers and contexts
 import { useAuth } from './contexts/AuthContext';
 import { SecurityProvider } from './contexts/SecurityContext';
-
-// Import components
 import { PageErrorBoundary } from './components';
 import { FullPageLoading } from './components/ui';
 
-// Lazy load pages for code splitting
+// Lazy load pages
 const AuthPage = lazy(() => import('./components/AuthPage').then(m => ({ default: m.AuthPage })));
 const ProjectListPage = lazy(() => import('./components/ProjectListPage').then(m => ({ default: m.ProjectListPage })));
 const ProjectDetailPage = lazy(() => import('./components/ProjectDetailPage').then(m => ({ default: m.ProjectDetailPage })));
@@ -28,23 +25,15 @@ const AdminDashboard = lazy(() => import('./components/admin').then(m => ({ defa
 const AgentMetricsDashboard = lazy(() => import('./components/admin/AgentMetricsDashboard').then(m => ({ default: m.AgentMetricsDashboard })));
 const SecurityDashboard = lazy(() => import('./components/admin/SecurityDashboard').then(m => ({ default: m.SecurityDashboard })));
 const TariffDatabaseManagement = lazy(() => import('./components/admin/TariffDatabaseManagement').then(m => ({ default: m.TariffDatabaseManagement })));
-
-// Lazy load calculator components (for unauthenticated/demo mode)
 const CalculatorForm = lazy(() => import('./components/CalculatorForm').then(m => ({ default: m.CalculatorForm })));
 
-// Import hooks and services (these are small and used frequently)
 import { useCalculator } from './hooks/useCalculator';
 import { useAllProvinces } from './hooks/useProvince';
 import { ProjectInput } from './domain/schemas/ProjectSchema';
 import { BenchmarkEngine } from './domain/services/BenchmarkEngine';
+// Note: Disclaimer and TermsLink can be imported when needed
 
-// Import Disclaimer components directly (small utility components)
-import { Disclaimer, RiskWarning, InlineDisclaimer, TermsLink } from './components/Disclaimer';
-
-/**
- * Protected Route Component
- * Redirects to login if user is not authenticated
- */
+// Protected Route
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
@@ -53,54 +42,32 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  if (loading) {
-    return <FullPageLoading />;
-  }
-
-  if (!user) {
-    // Redirect to login with return location
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
+  if (loading) return <FullPageLoading />;
+  if (!user) return <Navigate to="/login" state={{ from: location }} replace />;
   return <>{children}</>;
 };
 
-/**
- * Public Route Component
- * Redirects to dashboard if user is already authenticated
- */
+// Public Route
 interface PublicRouteProps {
   children: React.ReactNode;
 }
 
 const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
-
-  if (loading) {
-    return <FullPageLoading />;
-  }
-
-  if (user) {
-    return <Navigate to="/" replace />;
-  }
-
+  if (loading) return <FullPageLoading />;
+  if (user) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
-/**
- * Demo Calculator (for unauthenticated users)
- */
+// Demo Calculator
 const DemoCalculator: React.FC = () => {
   const { t } = useTranslation();
-  const { result, loading, error, triggerCalculation } = useCalculator({ debounce: 300 });
-  const { provinces, loading: loadingProvinces } = useAllProvinces();
-  const [language, setLanguage] = useState<'zh' | 'en'>('zh');
-
-  // Benchmark engine
+  const { result, /* loading, error, */ triggerCalculation } = useCalculator({ debounceMs: 300 });
+  const { provinces /*, loading: loadingProvinces */ } = useAllProvinces();
+  // const [language, setLanguage] = useState<'zh' | 'en'>('zh');
   const [benchmarkEngine] = useState(() => new BenchmarkEngine());
   const [benchmarkComparison, setBenchmarkComparison] = useState<any>(null);
 
-  // Handle calculation
   const handleCalculate = async (input: ProjectInput) => {
     try {
       await triggerCalculation(input);
@@ -109,9 +76,9 @@ const DemoCalculator: React.FC = () => {
     }
   };
 
-  // Watch for result changes to update benchmark
   useEffect(() => {
     if (result && provinces.length > 0 && !benchmarkComparison) {
+      // @ts-ignore - result may have input property
       const input = result.input;
       if (input) {
         benchmarkEngine.compare(input, result)
@@ -121,62 +88,61 @@ const DemoCalculator: React.FC = () => {
     }
   }, [result, provinces, benchmarkComparison, benchmarkEngine]);
 
-  // Handle form submission
   const handleSubmit = async (input: ProjectInput) => {
     console.log('Demo project saved:', input);
-    // In demo mode, just log the data
-  };
-
-  // Language toggle
-  const toggleLanguage = () => {
-    const newLang = language === 'zh' ? 'en' : 'zh';
-    setLanguage(newLang);
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm">
+    <div className="min-h-screen bg-gradient-mesh relative overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute -top-20 -right-20 w-96 h-96 bg-primary-200/10 rounded-full blur-3xl" />
+        <div className="absolute top-1/2 -left-32 w-64 h-64 bg-primary-300/10 rounded-full blur-3xl" />
+      </div>
+
+      {/* Header with Glass Effect */}
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-neutral-200/60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {t('app.title')}
-              </h1>
-              <p className="text-sm text-gray-600 mt-1">
-                {t('app.subtitle')}
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-lg shadow-primary-500/20">
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-neutral-900">{t('app.title')}</h1>
+                <p className="text-xs text-neutral-500">{t('app.subtitle')}</p>
+              </div>
             </div>
 
-            {/* Sign Up Button */}
             <a
               href="/register"
-              className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-500 text-white text-sm font-medium rounded-xl shadow-lg shadow-primary-500/25 hover:shadow-xl hover:shadow-primary-500/30 hover:-translate-y-0.5 transition-all duration-200 group relative overflow-hidden"
             >
-              {t('auth.signUp', { defaultValue: 'Sign Up' })}
+              <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+              <span className="relative">{t('auth.signUp', { defaultValue: '注册' })}</span>
             </a>
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
         {/* Demo Notice */}
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start">
-            <svg className="w-5 h-5 text-blue-400 mr-3 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <div className="flex-1">
-              <h3 className="text-sm font-semibold text-blue-900 mb-1">
-                {t('demo.title', { defaultValue: 'Demo Mode' })}
+        <div className="mb-6 bg-gradient-to-r from-primary-50/90 to-primary-100/60 backdrop-blur-sm border border-primary-200/60 rounded-xl p-4 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl shadow-md shadow-primary-500/20 flex-shrink-0">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-primary-900 mb-1">
+                {t('demo.title', { defaultValue: '演示模式' })}
               </h3>
-              <p className="text-sm text-blue-800">
-                {t('demo.description', { defaultValue: 'Sign up to save your projects and access them from any device.' })}
+              <p className="text-sm text-primary-700">
+                {t('demo.description', { defaultValue: '注册账户以保存项目并随时访问。' })}
               </p>
             </div>
           </div>
@@ -185,62 +151,83 @@ const DemoCalculator: React.FC = () => {
         {/* Calculator Form */}
         <Suspense fallback={<FullPageLoading />}>
           <PageErrorBoundary pageName="CalculatorForm">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <CalculatorForm
-                onSubmit={handleSubmit}
-                onCalculate={handleCalculate}
-              />
+            <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-neutral-200/60 shadow-xl shadow-black/5 p-6 relative overflow-hidden">
+              {/* Shine effect */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-transparent to-transparent pointer-events-none" />
+              <div className="relative">
+                <CalculatorForm
+                  onSubmit={handleSubmit}
+                  onCalculate={handleCalculate}
+                />
+              </div>
             </div>
           </PageErrorBoundary>
         </Suspense>
 
         {/* Info Section */}
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">
-              {t('calculator.title')}
-            </h3>
-            <p className="text-sm text-blue-800">
-              Calculate IRR, NPV, payback period, and LCOE for your energy storage project
-            </p>
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="group bg-gradient-to-b from-white/90 to-neutral-50/80 backdrop-blur-sm border border-neutral-200/60 rounded-2xl p-6 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-primary-500/10 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary-500/0 to-primary-500/0 group-hover:from-primary-500/5 group-hover:to-primary-500/0 transition-all duration-300" />
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-primary-100 to-primary-50 rounded-xl shadow-md shadow-primary-500/10 group-hover:scale-105 transition-transform duration-300">
+                  <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold text-neutral-900">{t('calculator.title')}</h3>
+              </div>
+              <p className="text-sm text-neutral-600">
+                计算 IRR、NPV、投资回收期和度电成本
+              </p>
+            </div>
           </div>
 
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-green-900 mb-2">
-              {t('sensitivity.title')}
-            </h3>
-            <p className="text-sm text-green-800">
-              Analyze how parameter changes affect your investment returns
-            </p>
+          <div className="group bg-gradient-to-b from-white/90 to-neutral-50/80 backdrop-blur-sm border border-neutral-200/60 rounded-2xl p-6 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-success-500/10 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-success-500/0 to-success-500/0 group-hover:from-success-500/5 group-hover:to-success-500/0 transition-all duration-300" />
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-success-100 to-success-50 rounded-xl shadow-md shadow-success-500/10 group-hover:scale-105 transition-transform duration-300">
+                  <svg className="w-6 h-6 text-success-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold text-neutral-900">{t('sensitivity.title')}</h3>
+              </div>
+              <p className="text-sm text-neutral-600">
+                分析参数变化对投资回报的影响
+              </p>
+            </div>
           </div>
 
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-purple-900 mb-2">
-              {t('benchmark.title')}
-            </h3>
-            <p className="text-sm text-purple-800">
-              Compare your project with 110+ industry benchmarks
-            </p>
+          <div className="group bg-gradient-to-b from-white/90 to-neutral-50/80 backdrop-blur-sm border border-neutral-200/60 rounded-2xl p-6 shadow-lg shadow-black/5 hover:shadow-xl hover:shadow-warning-500/10 transition-all duration-300 hover:-translate-y-1 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-warning-500/0 to-warning-500/0 group-hover:from-warning-500/5 group-hover:to-warning-500/0 transition-all duration-300" />
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-warning-100 to-warning-50 rounded-xl shadow-md shadow-warning-500/10 group-hover:scale-105 transition-transform duration-300">
+                  <svg className="w-6 h-6 text-warning-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold text-neutral-900">{t('benchmark.title')}</h3>
+              </div>
+              <p className="text-sm text-neutral-600">
+                与 110+ 行业基准进行比较
+              </p>
+            </div>
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-12">
-        {/* Disclaimer */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <Disclaimer type="short" variant="footer" />
-          <TermsLink className="mb-4" />
-        </div>
-
-        {/* Footer content */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 border-t border-gray-100">
+      <footer className="bg-white/80 backdrop-blur-xl border-t border-neutral-200/60 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-gray-500">
-              © 2026 ESS Financial. {t('common.all')} {t('common.rights')}.
+            <p className="text-sm text-neutral-500">
+              © 2026 ESS Financial. 保留所有权利。
             </p>
-            <p className="text-sm text-gray-500">
-              Version 1.0.0 | {t('common.data')}: {t('common.source')} - {t('common.provinces')} 31
+            <p className="text-sm text-neutral-500">
+              版本 1.0.0 | 数据：31 个省份
             </p>
           </div>
         </div>
@@ -249,21 +236,14 @@ const DemoCalculator: React.FC = () => {
   );
 };
 
-/**
- * Loading component for lazy loaded routes
- */
+// Route Loading
 const RouteLoading: React.FC = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50">
-    <div className="text-center">
-      <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent"></div>
-      <p className="mt-4 text-gray-600">Loading...</p>
-    </div>
+  <div className="min-h-screen flex items-center justify-center bg-neutral-50">
+    <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-600 border-t-transparent" />
   </div>
 );
 
-/**
- * Wrapper component for lazy loaded routes with error boundary
- */
+// Lazy Route Wrapper
 interface LazyRouteWrapperProps {
   children: React.ReactNode;
 }
@@ -276,15 +256,10 @@ const LazyRouteWrapper: React.FC<LazyRouteWrapperProps> = ({ children }) => (
   </Suspense>
 );
 
-/**
- * Main App Component with Routing
- */
+// Main App
 function App() {
-  // Initialize AI configuration on app startup
   useEffect(() => {
-    // Only initialize in browser environment
     if (typeof window !== 'undefined') {
-      // Dynamically import to avoid SSR issues
       import('@/config/Settings').then(({ initializeAIConfig }) => {
         try {
           initializeAIConfig();
@@ -322,10 +297,10 @@ function App() {
               }
             />
 
-            {/* Demo Route (unauthenticated) */}
+            {/* Demo Route */}
             <Route path="/demo" element={<LazyRouteWrapper><DemoCalculator /></LazyRouteWrapper>} />
 
-            {/* Public Metrics Dashboard (unauthenticated) */}
+            {/* Public Metrics Dashboard */}
             <Route
               path="/admin/agent-metrics"
               element={

@@ -1,0 +1,255 @@
+/**
+ * 四川省电价PDF解析器
+ * 
+ * 特点：
+ * - 西南电网格式
+ * - 支持丰枯电价（丰水期/枯水期）
+ * - 支持分时电价
+ */
+
+import { BaseProvinceParser, TimePeriodConfig, SeasonalPeriod, parserRegistry } from '../ProvinceParserRegistry';
+import { PDFMetadata, ParsedTariffData, TariffItem } from '../../agents/PDFAnalyzer';
+
+export class SichuanParser extends BaseProvinceParser {
+  readonly provinceCode = 'SC';
+  readonly provinceName = '四川省';
+  
+  // 四川特有电压等级
+  protected voltagePatterns = [
+    /(不满\s*1\s*千伏|1-10\s*千伏|35\s*千伏|110\s*千伏|220\s*千伏)/,
+    /(不满1千伏|1-10千伏|35千伏|110千伏|220千伏)/,
+  ];
+  
+  // 四川用电类别
+  protected categoryPatterns = [
+    /(大工业用电|一般工商业及其他用电|居民生活用电|农业生产用电)/,
+    /(大工业|一般工商业|居民|农业)/,
+  ];
+  
+  /**
+   * 检查是否支持该PDF
+   */
+  canParse(text: string, metadata: PDFMetadata): boolean {
+    const textToCheck = text + ' ' + (metadata.title || '');
+    return textToCheck.includes('四川') || 
+           textToCheck.includes('川发改价格') ||
+           textToCheck.includes('川价电') ||
+           textToCheck.includes('成都');
+  }
+  
+  /**
+   * 解析PDF文本
+   */
+  async parse(text: string, metadata: PDFMetadata): Promise<ParsedTariffData> {
+    // 检测丰枯电价
+    const hasSeasonalTariff = this.detectFengKuTariff(text);
+    
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    const tariffItems: TariffItem[] = [];
+    
+    let currentVoltageLevel = '';
+    let currentCategory = '';
+    let currentTimePeriod = '';
+    let currentSeason = '';
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // 提取电压等级
+      const voltage = this.extractVoltageLevel(line);
+      if (voltage) {
+        currentVoltageLevel = voltage;
+        continue;
+      }
+      
+      // 提取用电类别
+      const category = this.extractCategory(line);
+      if (category) {
+        currentCategory = category;
+        continue;
+      }
+      
+      // 提取丰枯季节
+      if (hasSeasonalTariff) {
+        const season = this.extractFengKuSeason(line);
+        if (season) {
+          currentSeason = season;
+          continue;
+        }
+      }
+      
+      // 提取时段
+      const timePeriod = this.extractTimePeriod(line);
+      if (timePeriod) {
+        currentTimePeriod = timePeriod;
+        continue;
+      }
+      
+      // 提取价格
+      const price = this.extractSichuanPrice(line, lines, i);
+      if (price !== null && currentVoltageLevel && currentCategory) {
+        tariffItems.push({
+          voltageLevel: currentVoltageLevel,
+          category: currentCategory,
+          price: price,
+          timePeriod: currentTimePeriod || undefined,
+          season: currentSeason || undefined,
+        });
+      }
+    }
+    
+    if (tariffItems.length === 0) {
+      throw new Error('未能从 PDF 中提取到四川省的电价数据');
+    }
+    
+    return {
+      provinceCode: this.provinceCode,
+      provinceName: this.provinceName,
+      policyNumber: metadata.policyNumber || this.extractPolicyNumber(text),
+      policyTitle: metadata.title || this.extractPolicyTitle(text),
+      effectiveDate: metadata.effectiveDate || this.extractEffectiveDate(text),
+      publisher: metadata.publisher || '四川省发展和改革委员会',
+      tariffItems,
+      parseMethod: 'pdf-text',
+      confidence: this.calculateConfidence(tariffItems, metadata),
+      parseWarnings: [],
+    };
+  }
+  
+  /**
+   * 检测丰枯电价
+   */
+  private detectFengKuTariff(text: string): boolean {
+    const keywords = ['丰水期', '枯水期', '平水期', '丰枯'];
+    return keywords.some(keyword => text.includes(keyword));
+  }
+  
+  /**
+   * 提取丰枯季节
+   */
+  private extractFengKuSeason(line: string): string | null {
+    if (line.includes('丰水期')) return '丰水期';
+    if (line.includes('枯水期')) return '枯水期';
+    if (line.includes('平水期')) return '平水期';
+    return null;
+  }
+  
+  /**
+   * 提取时段
+   */
+  private extractTimePeriod(line: string): string | null {
+    const patterns = [
+      { pattern: /峰.*?电价/, name: '峰段' },
+      { pattern: /谷.*?电价/, name: '谷段' },
+      { pattern: /平.*?电价/, name: '平段' },
+      { pattern: /尖峰.*?电价/, name: '尖峰' },
+    ];
+    
+    for (const { pattern, name } of patterns) {
+      if (pattern.test(line)) {
+        return name;
+      }
+    }
+    return null;
+  }
+  
+  /**
+   * 提取四川电价
+   */
+  private extractSichuanPrice(line: string, lines: string[], index: number): number | null {
+    const priceMatches = line.match(/(\d+\.\d{4})/g);
+    if (!priceMatches) return null;
+    
+    for (const match of priceMatches) {
+      const price = parseFloat(match);
+      if (price >= 0.2 && price <= 2.0) {
+        return price;
+      }
+    }
+    return null;
+  }
+  
+  /**
+   * 提取政策文号
+   */
+  private extractPolicyNumber(text: string): string | undefined {
+    const match = text.match(/川发改价格〔\d{4}〕\d+号/);
+    if (match) return match[0];
+    
+    const match2 = text.match(/川价电〔\d{4}〕\d+号/);
+    if (match2) return match2[0];
+    
+    return undefined;
+  }
+  
+  /**
+   * 提取政策标题
+   */
+  private extractPolicyTitle(text: string): string | undefined {
+    const lines = text.split('\n');
+    for (const line of lines.slice(0, 10)) {
+      if ((line.includes('电价') || line.includes('销售电价')) && line.length > 10 && line.length < 100) {
+        return line.trim();
+      }
+    }
+    return undefined;
+  }
+  
+  /**
+   * 提取生效日期
+   */
+  private extractEffectiveDate(text: string): string | undefined {
+    const match = text.match(/自\s*(\d{4})\s*年\s*(\d{1,2})\s*月\s*(\d{1,2})\s*日起?/);
+    if (match) {
+      const [, year, month, day] = match;
+      return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    return undefined;
+  }
+  
+  /**
+   * 提取时段配置
+   */
+  extractTimePeriods(text: string): TimePeriodConfig | null {
+    const hasFengKu = this.detectFengKuTariff(text);
+    
+    if (hasFengKu) {
+      return {
+        peakHours: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+        valleyHours: [23, 0, 1, 2, 3, 4, 5, 6, 7],
+        flatHours: [22],
+        peakDescription: '峰段（8:00-22:00，除谷段外）',
+        valleyDescription: '谷段（23:00-7:00）',
+        flatDescription: '平段（22:00-23:00）',
+        seasonalPeriods: [
+          {
+            name: '丰水期（6-10月）',
+            months: [6, 7, 8, 9, 10],
+            peakHours: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+            valleyHours: [23, 0, 1, 2, 3, 4, 5, 6, 7],
+            flatHours: [22],
+          },
+          {
+            name: '枯水期（11-5月）',
+            months: [11, 12, 1, 2, 3, 4, 5],
+            peakHours: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+            valleyHours: [23, 0, 1, 2, 3, 4, 5, 6, 7],
+            flatHours: [22],
+          },
+        ],
+      };
+    }
+    
+    return {
+      peakHours: [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
+      valleyHours: [23, 0, 1, 2, 3, 4, 5, 6, 7],
+      flatHours: [22],
+      peakDescription: '峰段（8:00-22:00，除谷段外）',
+      valleyDescription: '谷段（23:00-7:00）',
+      flatDescription: '平段（22:00-23:00）',
+    };
+  }
+}
+
+// 自动注册
+parserRegistry.register(new SichuanParser());

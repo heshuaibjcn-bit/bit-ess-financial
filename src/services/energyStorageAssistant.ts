@@ -39,7 +39,10 @@ export class EnergyStorageAssistant {
     const apiKey = config.apiKey || this.getApiKey();
 
     if (apiKey) {
-      this.client = new Anthropic({ apiKey });
+      this.client = new Anthropic({ 
+        apiKey,
+        dangerouslyAllowBrowser: true 
+      });
     }
 
     this.model = config.model || 'claude-3-haiku-20240307';

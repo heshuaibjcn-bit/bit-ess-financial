@@ -1,38 +1,82 @@
 /**
  * Badge Component
- *
- * Simple badge component for displaying status and labels
+ * 
+ * Minimal business-style badge for displaying status and labels.
+ * White & Blue color palette.
  */
 
 import React from 'react';
 
-interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning';
+interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+  variant?: 'default' | 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'outline';
+  size?: 'sm' | 'md';
 }
 
 export const Badge: React.FC<BadgeProps> = ({
   children,
   className = '',
   variant = 'default',
+  size = 'md',
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+  const baseStyles = 'inline-flex items-center font-medium transition-colors';
+  
+  const sizeStyles = {
+    sm: 'px-2 py-0.5 text-xs rounded',
+    md: 'px-2.5 py-0.5 text-xs rounded-md',
+  };
 
   const variantStyles = {
-    default: 'bg-gray-100 text-gray-800 hover:bg-gray-200',
-    secondary: 'bg-blue-100 text-blue-800 hover:bg-blue-200',
-    destructive: 'bg-red-100 text-red-800 hover:bg-red-200',
-    outline: 'border border-gray-300 text-gray-700 hover:bg-gray-50',
-    success: 'bg-green-100 text-green-800 hover:bg-green-200',
-    warning: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200',
+    default: 'bg-neutral-100 text-neutral-700',
+    primary: 'bg-primary-50 text-primary-700 border border-primary-200',
+    secondary: 'bg-neutral-100 text-neutral-600',
+    success: 'bg-success-50 text-success-700 border border-success-200',
+    warning: 'bg-warning-50 text-warning-700 border border-warning-200',
+    error: 'bg-error-50 text-error-700 border border-error-200',
+    outline: 'bg-transparent border border-neutral-300 text-neutral-600',
   };
 
   return (
-    <div
-      className={`${baseStyles} ${variantStyles[variant]} ${className}`}
+    <span
+      className={`${baseStyles} ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
       {...props}
     >
       {children}
-    </div>
+    </span>
   );
 };
+
+/**
+ * Status Badge with dot indicator
+ */
+interface StatusBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
+  status: 'active' | 'inactive' | 'pending' | 'error' | 'success';
+  text: string;
+}
+
+export const StatusBadge: React.FC<StatusBadgeProps> = ({
+  status,
+  text,
+  className = '',
+  ...props
+}) => {
+  const dotColors = {
+    active: 'bg-success-500',
+    inactive: 'bg-neutral-400',
+    pending: 'bg-warning-500',
+    error: 'bg-error-500',
+    success: 'bg-success-500',
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium text-neutral-700 bg-neutral-100 rounded-md ${className}`}
+      {...props}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${dotColors[status]}`} />
+      {text}
+    </span>
+  );
+};
+
+export default Badge;

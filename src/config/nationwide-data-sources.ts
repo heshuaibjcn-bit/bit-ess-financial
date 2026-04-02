@@ -1,0 +1,607 @@
+/**
+ * 全国31省市电价数据源配置
+ * 
+ * 数据来源：各省发改委官网 + 电网公司官网
+ * 更新频率：月度检查
+ */
+
+import type { DataSourceConfig, Province } from '@/types/real-tariff';
+
+// 全国31省市基础信息
+export const NATIONWIDE_PROVINCES: Province[] = [
+  // 南方电网（5省）
+  { code: 'GD', name: '广东省', region: '南方电网', gridCompany: '南方电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'GX', name: '广西壮族自治区', region: '南方电网', gridCompany: '南方电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'YN', name: '云南省', region: '南方电网', gridCompany: '南方电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'GZ', name: '贵州省', region: '南方电网', gridCompany: '南方电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'HI', name: '海南省', region: '南方电网', gridCompany: '南方电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  
+  // 华东电网（4省1市）
+  { code: 'SH', name: '上海市', region: '华东电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'JS', name: '江苏省', region: '华东电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'ZJ', name: '浙江省', region: '华东电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'AH', name: '安徽省', region: '华东电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'FJ', name: '福建省', region: '华东电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  
+  // 华北电网（2省2市1自治区）
+  { code: 'BJ', name: '北京市', region: '华北电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'TJ', name: '天津市', region: '华北电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'HE', name: '河北省', region: '华北电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'SX', name: '山西省', region: '华北电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'NM', name: '内蒙古自治区', region: '华北电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  
+  // 华中电网（4省）
+  { code: 'HA', name: '河南省', region: '华中电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'HB', name: '湖北省', region: '华中电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'HN', name: '湖南省', region: '华中电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'JX', name: '江西省', region: '华中电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  
+  // 东北电网（3省）
+  { code: 'LN', name: '辽宁省', region: '东北电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'JL', name: '吉林省', region: '东北电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'HL', name: '黑龙江省', region: '东北电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  
+  // 西北电网（5省1自治区）
+  { code: 'SN', name: '陕西省', region: '西北电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'GS', name: '甘肃省', region: '西北电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'QH', name: '青海省', region: '西北电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'NX', name: '宁夏回族自治区', region: '西北电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'XJ', name: '新疆维吾尔自治区', region: '西北电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  
+  // 西南电网（1省1市1自治区）
+  { code: 'SC', name: '四川省', region: '西南电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'CQ', name: '重庆市', region: '西南电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+  { code: 'XZ', name: '西藏自治区', region: '西南电网', gridCompany: '国家电网', status: 'active', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+];
+
+// 数据源配置
+export const NATIONWIDE_DATA_SOURCES: DataSourceConfig[] = [
+  // ========== 南方电网 ==========
+  {
+    code: 'GD',
+    name: '广东省',
+    region: '南方电网',
+    gridCompany: '南方电网',
+    primaryUrl: 'http://drc.gd.gov.cn/jgml/gfbzzcj/gfxwjg/index.html',
+    backupUrl: 'https://www.csg.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a, .article-list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date, .time',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table, .price-table',
+    },
+  },
+  {
+    code: 'GX',
+    name: '广西壮族自治区',
+    region: '南方电网',
+    gridCompany: '南方电网',
+    primaryUrl: 'http://fgw.gxzf.gov.cn/zwgk/jggs/zcwj/zcjd/',
+    backupUrl: 'https://www.csg.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'YN',
+    name: '云南省',
+    region: '南方电网',
+    gridCompany: '南方电网',
+    primaryUrl: 'http://fgw.yn.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.csg.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'GZ',
+    name: '贵州省',
+    region: '南方电网',
+    gridCompany: '南方电网',
+    primaryUrl: 'http://fgw.guizhou.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.csg.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'HI',
+    name: '海南省',
+    region: '南方电网',
+    gridCompany: '南方电网',
+    primaryUrl: 'http://fgw.hainan.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.csg.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  
+  // ========== 华东电网 ==========
+  {
+    code: 'SH',
+    name: '上海市',
+    region: '华东电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.sh.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.sh.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'JS',
+    name: '江苏省',
+    region: '华东电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fzggw.jiangsu.gov.cn/art/2025/',
+    backupUrl: 'https://www.js.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a, .list-item a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'ZJ',
+    name: '浙江省',
+    region: '华东电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'https://fzggw.zj.gov.cn/art/2025/',
+    backupUrl: 'https://www.zj.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a, .list-item a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'AH',
+    name: '安徽省',
+    region: '华东电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fzggw.ah.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.ah.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'FJ',
+    name: '福建省',
+    region: '华东电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.fujian.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.fj.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  
+  // ========== 华北电网 ==========
+  {
+    code: 'BJ',
+    name: '北京市',
+    region: '华北电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.beijing.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.bj.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'TJ',
+    name: '天津市',
+    region: '华北电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.tj.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.tj.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'HE',
+    name: '河北省',
+    region: '华北电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.hebei.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.he.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'SX',
+    name: '山西省',
+    region: '华北电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.shanxi.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.sx.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'NM',
+    name: '内蒙古自治区',
+    region: '华北电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.nmg.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.nm.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  
+  // ========== 华中电网 ==========
+  {
+    code: 'HA',
+    name: '河南省',
+    region: '华中电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.henan.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.ha.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'HB',
+    name: '湖北省',
+    region: '华中电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.hubei.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.hb.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'HN',
+    name: '湖南省',
+    region: '华中电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.hunan.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.hn.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'JX',
+    name: '江西省',
+    region: '华中电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.jiangxi.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.jx.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  
+  // ========== 东北电网 ==========
+  {
+    code: 'LN',
+    name: '辽宁省',
+    region: '东北电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.ln.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.ln.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'JL',
+    name: '吉林省',
+    region: '东北电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.jl.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.jl.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'HL',
+    name: '黑龙江省',
+    region: '东北电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.hlj.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.hl.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  
+  // ========== 西北电网 ==========
+  {
+    code: 'SN',
+    name: '陕西省',
+    region: '西北电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.shaanxi.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.sn.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'GS',
+    name: '甘肃省',
+    region: '西北电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.gansu.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.gs.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'QH',
+    name: '青海省',
+    region: '西北电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.qinghai.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.qh.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'NX',
+    name: '宁夏回族自治区',
+    region: '西北电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.nx.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.nx.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'XJ',
+    name: '新疆维吾尔自治区',
+    region: '西北电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.xinjiang.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.xj.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  
+  // ========== 西南电网 ==========
+  {
+    code: 'SC',
+    name: '四川省',
+    region: '西南电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.sc.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.sc.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'CQ',
+    name: '重庆市',
+    region: '西南电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.cq.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.cq.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+  {
+    code: 'XZ',
+    name: '西藏自治区',
+    region: '西南电网',
+    gridCompany: '国家电网',
+    primaryUrl: 'http://fgw.xizang.gov.cn/zwgk/zcwj/zcjd/',
+    backupUrl: 'https://www.xz.sgcc.com.cn/',
+    encoding: 'utf-8',
+    isDynamic: false,
+    selectors: {
+      listPage: '.news-list a, .list a',
+      policyNumber: '.content:contains("发改价格")',
+      publishDate: '.date, .publish-date',
+      effectiveDate: '.content:contains("自")',
+      contentTable: 'table, .tariff-table',
+    },
+  },
+];
+
+// 辅助函数：获取省份配置
+export function getDataSourceByCode(code: string): DataSourceConfig | undefined {
+  return NATIONWIDE_DATA_SOURCES.find(s => s.code === code);
+}
+
+export function getProvinceByCode(code: string): Province | undefined {
+  return NATIONWIDE_PROVINCES.find(p => p.code === code);
+}
+
+// 按电网区域分组
+export function getProvincesByRegion(region: string): Province[] {
+  return NATIONWIDE_PROVINCES.filter(p => p.region === region);
+}
+
+// 所有电网区域
+export const GRID_REGIONS = [
+  '南方电网',
+  '华东电网',
+  '华北电网',
+  '华中电网',
+  '东北电网',
+  '西北电网',
+  '西南电网',
+] as const;
