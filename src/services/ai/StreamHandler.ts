@@ -124,11 +124,17 @@ export class StreamAccumulator {
  */
 export async function* createMockStream(
   response: string,
-  chunkDelay: number = 30
+  chunkDelay: number = 30,
+  signal?: AbortSignal
 ): AsyncGenerator<StreamEvent, void, unknown> {
   const words = response.split(' ');
 
   for (let i = 0; i < words.length; i++) {
+    // Check if aborted
+    if (signal?.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
     await new Promise((resolve) => setTimeout(resolve, chunkDelay));
     yield { type: 'text', data: words[i] + (i < words.length - 1 ? ' ' : '') };
   }

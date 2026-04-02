@@ -71,19 +71,20 @@ export class AIChatService {
    */
   async *sendMessageStream(
     systemPrompt: string,
-    userPrompt: string
+    userPrompt: string,
+    signal?: AbortSignal
   ): AsyncGenerator<StreamEvent, void, unknown> {
     const { provider } = this.config;
 
     switch (provider) {
       case 'anthropic':
-        yield* this.sendAnthropicStream(systemPrompt, userPrompt);
+        yield* this.sendAnthropicStream(systemPrompt, userPrompt, signal);
         break;
       case 'openai':
-        yield* this.sendOpenAIStream(systemPrompt, userPrompt);
+        yield* this.sendOpenAIStream(systemPrompt, userPrompt, signal);
         break;
       case 'mock':
-        yield* this.sendMockStream(systemPrompt, userPrompt);
+        yield* this.sendMockStream(systemPrompt, userPrompt, signal);
         break;
       default:
         yield { type: 'error', error: `Unsupported provider: ${provider}` };
@@ -139,7 +140,8 @@ export class AIChatService {
    */
   private async *sendAnthropicStream(
     systemPrompt: string,
-    userPrompt: string
+    userPrompt: string,
+    signal?: AbortSignal
   ): AsyncGenerator<StreamEvent, void, unknown> {
     const apiKey = this.config.apiKey;
     if (!apiKey) {
@@ -162,6 +164,7 @@ export class AIChatService {
           messages: [{ role: 'user', content: userPrompt }],
           stream: true,
         }),
+        signal,
       });
 
       if (!response.ok) {
@@ -229,7 +232,8 @@ export class AIChatService {
    */
   private async *sendOpenAIStream(
     systemPrompt: string,
-    userPrompt: string
+    userPrompt: string,
+    signal?: AbortSignal
   ): AsyncGenerator<StreamEvent, void, unknown> {
     const apiKey = this.config.apiKey;
     if (!apiKey) {
@@ -254,6 +258,7 @@ export class AIChatService {
           temperature: this.config.temperature ?? 0.7,
           stream: true,
         }),
+        signal,
       });
 
       if (!response.ok) {
@@ -298,10 +303,11 @@ export class AIChatService {
    */
   private async *sendMockStream(
     systemPrompt: string,
-    userPrompt: string
+    userPrompt: string,
+    signal?: AbortSignal
   ): AsyncGenerator<StreamEvent, void, unknown> {
     const mockResponse = this.generateMockResponse(userPrompt);
-    yield* createMockStream(mockResponse, 20);
+    yield* createMockStream(mockResponse, 20, signal);
   }
 
   /**

@@ -46,6 +46,9 @@ export function useAIChat() {
   // Ref to track timeout for cleanup
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Ref to track AbortController for cancellation
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   /**
    * Generate unique message ID
    */
@@ -112,6 +115,10 @@ export function useAIChat() {
     addChatMessage(assistantMsg);
     streamingMessageIdRef.current = assistantMsg.id;
 
+    // Create AbortController for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     try {
       // Stream response with timeout
       let fullContent = '';
@@ -119,13 +126,14 @@ export function useAIChat() {
       // Create timeout promise
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutRef.current = setTimeout(() => {
+          abortController.abort(); // Also abort the fetch on timeout
           reject(new Error('AI response timeout (30s) - please try again'));
         }, 30000); // 30 second timeout
       });
 
       // Create stream promise
       const streamPromise = (async () => {
-        for await (const event of aiChatService.sendMessageStream(systemPrompt, userPrompt)) {
+        for await (const event of aiChatService.sendMessageStream(systemPrompt, userPrompt, abortController.signal)) {
           if (event.type === 'text' && event.data) {
             fullContent += event.data;
             updateChatMessage(assistantMsg.id, fullContent);
@@ -147,6 +155,13 @@ export function useAIChat() {
       await Promise.race([streamPromise, timeoutPromise]);
 
     } catch (error) {
+      // Handle AbortError separately (user cancelled)
+      if (error instanceof Error && error.name === 'AbortError') {
+        // Silently handle abort - no error message needed
+        updateMessageStreamingState(assistantMsg.id, false);
+        return;
+      }
+
       const errorMessage = error instanceof Error ? error.message : 'Failed to get AI response';
       setChatError(errorMessage);
       setChatErrorType('unknown');
@@ -159,6 +174,12 @@ export function useAIChat() {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
+      }
+
+      // Abort the fetch request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
 
       setIsAiThinking(false);
@@ -211,12 +232,16 @@ export function useAIChat() {
     }
   }, [chatMessages, sendMessage, removeChatMessage]);
 
-  // Cleanup on unmount - clear any pending timeout
+  // Cleanup on unmount - clear any pending timeout and abort fetch
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
       }
     };
   }, []);
