@@ -252,7 +252,7 @@ export const useUIStore = create<UIState>()(
       },
 
       setChatErrorType: (errorType) => {
-        set({ chatErrorType });
+        set({ chatErrorType: errorType });
       },
 
       clearChatError: () => {

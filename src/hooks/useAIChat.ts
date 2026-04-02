@@ -140,6 +140,9 @@ export function useAIChat() {
           } else if (event.type === 'error' && event.error) {
             setChatError(event.error);
             setChatErrorType('unknown');
+            // Update message with error and clear streaming flag
+            updateChatMessage(assistantMsg.id, `Error: ${event.error}`);
+            updateMessageStreamingState(assistantMsg.id, false);
             break;
           } else if (event.type === 'done') {
             // Mark streaming complete - update content and clear streaming flag
