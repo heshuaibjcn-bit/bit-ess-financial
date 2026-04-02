@@ -272,3 +272,50 @@
 - **Depends on / blocked by:** None — simple text replacement
 - **Estimated effort:** 30 minutes
 
+
+## Design System (from /plan-design-review on 2026-04-02)
+
+### Design system documentation (DESIGN.md)
+- **What:** Run `/design-consultation` to create comprehensive DESIGN.md with design tokens
+- **Why:** No centralized design system exists. Creates consistency debt as app scales. Design tokens (colors, spacing, typography, shadows, component patterns) should be documented for team alignment.
+- **Pros:** Single source of truth for design decisions, easier onboarding, prevents inconsistencies, enables design system growth
+- **Cons:** Initial effort to document, ongoing maintenance as design evolves
+- **Context:** Design review found 4/10 design system alignment. Multiple components using Tailwind but no documented tokens. Hard to maintain consistency across team.
+- **Depends on / blocked by:** None — can be done anytime
+- **Estimated effort:** 2-4 hours for initial DESIGN.md creation
+
+### AI chat mobile responsive behavior
+- **What:** Implement 100% viewport width on mobile (375px+) for AI chat sidebar
+- **Why:** Current implementation has no explicit responsive behavior. Sidebar uses `max-w-md` but mobile behavior is undefined. Users expect chat interfaces to use entire screen on mobile.
+- **Pros:** Better mobile UX, follows platform conventions, no wasted screen space
+- **Cons:** Requires responsive CSS testing on multiple devices
+- **Context:** Design review found 6/10 responsive score. No breakpoints defined, no mobile-specific patterns.
+- **Implementation:** Add media query for max-width 767px to set width: 100vw
+- **Depends on / blocked by:** None — straightforward CSS addition
+- **Estimated effort:** 30 minutes
+
+### AI chat welcome message personalization
+- **What:** Personalize welcome message with project name (e.g., "关于项目【XX工业园储能】的智能分析")
+- **Why:** Plan specified personalized welcome but implementation uses generic i18n strings. Personalization creates emotional connection ("这个懂我") and matches plan's user journey design.
+- **Pros:** Better onboarding UX, fulfills plan's emotional design intent, feels more intelligent/customized
+- **Cons:** Requires accessing currentProject.name, needs i18n string update
+- **Context:** Design review found gap between plan (personalized) and implementation (generic). Welcome message at ChatMessageList.tsx:47-48.
+- **Implementation:** Update welcome message to use currentProject.name in i18n string or component
+- **Depends on / blocked by:** None — straightforward string interpolation
+- **Estimated effort:** 1 hour
+
+### AI chat accessibility improvements
+- **What:** Add ARIA labels, live regions, and reduced-motion support to AI chat components
+- **Why:** Inclusive design is essential for enterprise software. Current gaps: missing ARIA labels, no live regions for streaming, color contrast issues, no reduced-motion support.
+- **Pros:** Meets WCAG AA requirements, better screen reader experience, respects user preferences, broader accessibility
+- **Cons:** Requires accessibility testing, may need color adjustments for contrast
+- **Context:** Design review found 6/10 accessibility score. Missing: aria-label on textarea, aria-live for streaming, role="log" on message list, reduced-motion query.
+- **Implementation:** 
+  - Add `role="log"` and `aria-live="polite"` to ChatMessageList
+  - Add `aria-label` to textarea input
+  - Add `aria-live="polite" aria-atomic="true"` to streaming container
+  - Add `@media (prefers-reduced-motion: reduce)` to disable animations
+  - Verify color contrast ratios (4.5:1 minimum)
+- **Depends on / blocked by:** None — accessibility improvements are additive
+- **Estimated effort:** 2 hours
+
