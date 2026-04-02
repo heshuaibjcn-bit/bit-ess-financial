@@ -441,7 +441,7 @@
       "unknown": "An unknown error occurred, please try again"
     },
     "messages": {
-      "welcome": "Hello! I'm your AI investment advisor assistant, here to help you analyze the investment value of energy storage projects.",
+      "welcome": "I can help you analyze the investment value, risk assessment, and optimization recommendations for energy storage projects. Ask me anything!",
       "noData": "No project data available, please complete the project calculation first."
     }
   }

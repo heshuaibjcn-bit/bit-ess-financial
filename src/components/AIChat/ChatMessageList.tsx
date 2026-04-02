@@ -8,6 +8,7 @@ import React, { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeHighlight from 'rehype-highlight';
+import { useTranslation } from 'react-i18next';
 import type { ChatMessage } from '@/types/ai';
 import { ThinkingIndicator } from './ThinkingIndicator';
 
@@ -24,6 +25,7 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
   thinkingMessage,
   className = '',
 }) => {
+  const { t } = useTranslation();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change
@@ -40,10 +42,10 @@ export const ChatMessageList: React.FC<ChatMessageListProps> = ({
           </svg>
         </div>
         <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          AI投资顾问助手
+          {t('aiChat.title')}
         </h3>
         <p className="text-sm text-gray-600 max-w-xs">
-          我可以帮助您分析储能项目的投资价值、风险评估和优化建议。请提出您的问题！
+          {t('aiChat.messages.welcome')}
         </p>
       </div>
     );
