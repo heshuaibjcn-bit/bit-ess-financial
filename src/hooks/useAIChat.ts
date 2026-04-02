@@ -4,7 +4,7 @@
  * Manages AI chat state and operations
  */
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useEffect } from 'react';
 import { useUIStore } from '@/stores/uiStore';
 import { useCalculationStore } from '@/stores/calculationStore';
 import { useProjectStore } from '@/stores/projectStore';
@@ -41,6 +41,9 @@ export function useAIChat() {
 
   // Ref to track current streaming message ID
   const streamingMessageIdRef = useRef<string | null>(null);
+
+  // Ref to track timeout for cleanup
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   /**
    * Generate unique message ID
@@ -104,24 +107,39 @@ export function useAIChat() {
     streamingMessageIdRef.current = assistantMsg.id;
 
     try {
-      // Stream response
+      // Stream response with timeout
       let fullContent = '';
 
-      for await (const event of aiChatService.sendMessageStream(systemPrompt, userPrompt)) {
-        if (event.type === 'text' && event.data) {
-          fullContent += event.data;
-          updateChatMessage(assistantMsg.id, fullContent);
-        } else if (event.type === 'error' && event.error) {
-          setChatError(event.error);
-          setChatErrorType('unknown');
-          break;
-        } else if (event.type === 'done') {
-          // Mark streaming complete - update content and clear streaming flag
-          updateChatMessage(assistantMsg.id, fullContent);
-          updateMessageStreamingState(assistantMsg.id, false);
-          break;
+      // Create timeout promise
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutRef.current = setTimeout(() => {
+          reject(new Error('AI response timeout (30s) - please try again'));
+        }, 30000); // 30 second timeout
+      });
+
+      // Create stream promise
+      const streamPromise = (async () => {
+        for await (const event of aiChatService.sendMessageStream(systemPrompt, userPrompt)) {
+          if (event.type === 'text' && event.data) {
+            fullContent += event.data;
+            updateChatMessage(assistantMsg.id, fullContent);
+          } else if (event.type === 'error' && event.error) {
+            setChatError(event.error);
+            setChatErrorType('unknown');
+            break;
+          } else if (event.type === 'done') {
+            // Mark streaming complete - update content and clear streaming flag
+            updateChatMessage(assistantMsg.id, fullContent);
+            updateMessageStreamingState(assistantMsg.id, false);
+            break;
+          }
         }
-      }
+        return fullContent;
+      })();
+
+      // Race between stream and timeout
+      await Promise.race([streamPromise, timeoutPromise]);
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to get AI response';
       setChatError(errorMessage);
@@ -131,6 +149,12 @@ export function useAIChat() {
       updateChatMessage(assistantMsg.id, `Error: ${errorMessage}`);
       updateMessageStreamingState(assistantMsg.id, false);
     } finally {
+      // Clear timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
       setIsAiThinking(false);
       streamingMessageIdRef.current = null;
     }
@@ -178,6 +202,16 @@ export function useAIChat() {
       await sendMessage(lastUserMessage.content);
     }
   }, [chatMessages, sendMessage]);
+
+  // Cleanup on unmount - clear any pending timeout
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+  }, []);
 
   return {
     // State
