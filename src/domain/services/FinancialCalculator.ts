@@ -70,9 +70,10 @@ export class FinancialCalculator {
         return null;
       }
 
-      return irrDecimal * 100; // Convert to percentage
+      const irrPercentage = irrDecimal * 100;
+      return irrPercentage; // Return as percentage
     } catch (error) {
-      console.error('Error calculating IRR:', error);
+      console.error('❌ Error calculating IRR:', error);
       return null;
     }
   }

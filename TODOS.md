@@ -319,3 +319,126 @@
 - **Depends on / blocked by:** None — accessibility improvements are additive
 - **Estimated effort:** 2 hours
 
+
+## AI Investment Report System (from /plan-eng-review on 2026-04-02)
+
+### Unit tests for AI agents (P1 - Critical)
+- **What:** Create test files for each agent (PolicyAnalysisAgent, TechnicalProposalAgent, RiskAssessmentAgent, ReportNarrativeAgent) with mocked LLM responses
+- **Why:** Currently 0% agent-level test coverage - agents have zero dedicated tests. Critical for regression protection.
+- **Pros:** Catches prompt changes, validates output quality, enables safe refactoring, prevents production breaks
+- **Cons:** ~4 hours of work (human: ~4h / CC: ~30min)
+- **Context:** Each agent needs happy path, error path, and edge case tests. Use vitest.mock() for GLM-4 API calls.
+- **Implementation:**
+  - Create `src/services/agents/PolicyAnalysisAgent.test.ts`
+  - Create `src/services/agents/TechnicalProposalAgent.test.ts`
+  - Create `src/services/agents/RiskAssessmentAgent.test.ts`
+  - Create `src/services/agents/ReportNarrativeAgent.test.ts`
+  - Mock GLM-4 API calls with viemst.mock()
+  - Test happy path, error handling, fallback invocation
+- **Depends on / blocked by:** None — can be done in Week 2
+- **Estimated effort:** 4 hours (human: ~4h / CC: ~30min)
+
+### Custom error classes ✅
+- **What:** Replace generic `unknown` catches with specific error types (AgentExecutionError, CalculationError, LLMTimeoutError)
+- **Why:** Currently using generic `unknown` everywhere - can't distinguish recoverable from fatal errors
+- **Pros:** Better error recovery, clearer error messages, proper error tracking, enables retry logic
+- **Cons:** ~1 hour of work (human: ~1h / CC: ~5min)
+- **Context:** Create `src/services/investment-report/errors.ts` with error classes. Update all catch blocks.
+- **Status:** COMPLETED
+  - Created `src/services/investment-report/errors.ts` with full error hierarchy
+  - InvestmentReportError (base), AgentExecutionError, CalculationError, LLMTimeoutError, ValidationError, PDFGenerationError, MissingDataError
+  - Updated InvestmentReportService.ts and PDFGenerator.ts to use specific error types
+  - Added `isRecoverable()`, `toLogObject()`, `toUserMessage()` methods
+
+### Agent timeout mechanism (P1 - Critical) ✅
+- **What:** Wrap all GLM-4 API calls with timeout (e.g., 30 seconds per agent)
+- **Why:** Critical gap - no timeout means stuck LLM calls hang forever
+- **Pros:** Prevents infinite hangs, improves UX, enables proper error recovery
+- **Cons:** ~30 minutes of work (human: ~30m / CC: ~5min)
+- **Context:** Use Promise.race() with timeout in each agent's execute method. Fallback to default data on timeout.
+- **Status:** COMPLETED
+  - Added TimeoutError class in NanoAgent.ts
+  - Added withTimeout() method in GLMClient (30s default)
+  - messagesCreate() now accepts timeoutMs parameter
+  - Note: withTimeout duplicated in GLMClient and NanoAgent — needs DRY fix
+
+### LLM response caching
+- **What:** Add cache layer with TTL (e.g., 1 hour) for agent responses
+- **Why:** Same inputs trigger repeated API calls - wastes money and time
+- **Pros:** Reduces costs, improves speed, reduces rate limiting issues
+- **Cons:** ~2 hours of work (human: ~2h / CC: ~10min)
+- **Context:** Use in-memory cache or Redis. Cache key based on Project ID + agent type. Invalidation on agent prompt changes.
+- **Implementation:**
+  - Create `src/services/investment-report/AgentCache.ts`
+  - Implement get/set methods with TTL
+  - Integrate into each agent before LLM call
+- **Depends on / blocked by:** None — performance optimization
+- **Estimated effort:** 2 hours (human: ~2h / CC: ~10min)
+
+### Edge case tests for InvestmentReportService
+- **What:** Expand test coverage beyond happy path - add tests for nil input, empty arrays, boundary values
+- **Why:** Currently only happy path is tested - nil/empty inputs could crash
+- **Pros:** Catches production edge cases, improves robustness, prevents crashes
+- **Cons:** ~2 hours of work (human: ~2h / CC: ~15min)
+- **Context:** Add tests for: nil Project, empty systemSize, zero costs, negative values, large arrays.
+- **Implementation:**
+  - Add test case: "应该处理nil输入"
+  - Add test case: "应该处理空systemSize"
+  - Add test case: "应该处理负值输入"
+  - Add test case: "应该处理超大数组"
+- **Depends on / blocked by:** None — robustness improvement
+- **Estimated effort:** 2 hours (human: ~2h / CC: ~15min)
+
+### AI Investment Report DESIGN.md
+- **What:** Create DESIGN.md documenting AI agent system architecture, data flow, error handling strategy
+- **Why:** No design documentation exists - future maintainers will be lost. Week 1 implementation is complete but not documented.
+- **Pros:** Preserves architectural decisions, aids onboarding, improves maintainability, enables knowledge transfer
+- **Cons:** ~2 hours of work (human: ~2h / CC: ~20min)
+- **Context:** Include ASCII diagrams, component descriptions, data flow, error handling, parallel execution strategy.
+- **Implementation:**
+  - Create `docs/DESIGN.md` or `docs/AI_INVESTMENT_REPORT_DESIGN.md`
+  - Document: Architecture overview, AI agent responsibilities, data flow diagram, error handling, fallback strategy
+  - Include ASCII diagrams for system architecture and data flow
+- **Depends on / blocked by:** None — documentation task
+- **Estimated effort:** 2 hours (human: ~2h / CC: ~20min)
+
+### Memory cleanup for ReportDataContext
+- **What:** Explicit cleanup of ReportDataContext after report completes
+- **Why:** Large contexts (10MB+) accumulate in memory - could cause memory leaks
+- **Pros:** Prevents memory leaks, improves long-running stability, better resource management
+- **Cons:** ~30 minutes of work (human: ~30m / CC: ~5min)
+- **Context:** Add cleanup method in InvestmentReportService, call in finally block.
+- **Implementation:**
+  - Add `cleanup()` method to ReportDataContext
+  - Call in InvestmentReportService after report generation
+  - Clear all agent outputs and cached data
+- **Depends on / blocked by:** None — memory leak prevention
+- **Estimated effort:** 30 minutes (human: ~30m / CC: ~5min)
+
+### Streaming generation by default
+- **What:** Make generateReportStream() the default, generateReport() the convenience wrapper
+- **Why:** Large reports accumulate in memory - streaming is more efficient
+- **Pros:** Better memory profile, faster perceived performance, scales to large reports
+- **Cons:** ~1 hour of work (human: ~1h / CC: ~5min)
+- **Context:** Refactor generateReport() to use streaming internally. Update callers to use streaming.
+- **Implementation:**
+  - Refactor InvestmentReportService.generateReport() to use streaming
+  - Update InvestmentReportButton to use streaming by default
+  - Provide progress feedback to UI
+- **Depends on / blocked by:** None — performance optimization
+- **Estimated effort:** 1 hour (human: ~1h / CC: ~5min)
+
+### True PDF generation (NEEDS FIX: puppeteer → @react-pdf/renderer)
+- **What:** Migrate PDF generation from puppeteer (server-side, incompatible with Vite SPA) to @react-pdf/renderer (client-side, already installed)
+- **Why:** Puppeteer requires Node.js + Chromium (~280MB). This app is a client-side Vite SPA with no backend. The puppeteer import in PDFGenerator.ts fails at build time.
+- **Pros:** Works in browser, no server dependency, already installed in package.json
+- **Cons:** ~2 hours of migration work
+- **Context:** Eng review (2026-04-03) found puppeteer is incompatible with Vite SPA architecture. @react-pdf/renderer was already used in previous PDFGenerator implementation. PDF templates (cover.html.ts, chapter-page.html.ts, content-page.html.ts) need conversion from HTML to React-PDF components.
+- **Implementation:**
+  - Remove puppeteer import from PDFGenerator.ts
+  - Convert HTML templates (pdf-templates/*.html.ts) to @react-pdf/renderer components
+  - Use visual-style.ts constants for styling (already compatible)
+  - Test PDF generation in browser
+- **Depends on / blocked by:** None — architecture fix
+- **Estimated effort:** 2 hours (human: ~2h / CC: ~15min)
+

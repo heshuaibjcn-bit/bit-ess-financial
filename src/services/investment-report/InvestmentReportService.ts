@@ -18,6 +18,13 @@
 
 import { ReportDataContext } from './ReportDataContext';
 import { PDFGenerator } from './PDFGenerator';
+import { REPORT_STRUCTURE } from './templates';
+import {
+  AgentExecutionError,
+  wrapUnknownAgentError,
+  getErrorMessage,
+  isInvestmentReportError,
+} from './errors';
 
 // Import all AI agents for investment report generation
 import { DueDiligenceAgent } from '../agents/DueDiligenceAgent';
@@ -27,11 +34,6 @@ import { RiskAssessmentAgent } from '../agents/RiskAssessmentAgent';
 import { ReportNarrativeAgent } from '../agents/ReportNarrativeAgent';
 
 // Import types for the agents
-import type { DueDiligenceResult } from '../agents/DueDiligenceAgent';
-import type { PolicyAnalysisResult } from '../agents/PolicyAnalysisAgent';
-import type { TechnicalProposalResult } from '../agents/TechnicalProposalAgent';
-import type { RiskAssessmentResult } from '../agents/RiskAssessmentAgent';
-
 // 使用现有的计算引擎
 import { FinancialCalculator } from '@/domain/services/FinancialCalculator';
 import { CashFlowCalculator } from '@/domain/services/CashFlowCalculator';
@@ -57,8 +59,8 @@ export interface InvestmentReportResult {
   generatedAt: Date;
   dataContext: ReportDataContext;
   narratives: Record<string, string>;
-  pdfBuffer?: Buffer;
-  pdfPath?: string;
+  pdfBlob?: Blob;
+  pdfUrl?: string;
   metadata: {
     generationTime: number; // 毫秒
     agentsExecuted: string[];
@@ -67,6 +69,7 @@ export interface InvestmentReportResult {
       component: string;
       error: string;
       fallback: string;
+      recoverable?: boolean;
     }>;
   };
 }
@@ -134,11 +137,11 @@ export class InvestmentReportService {
 
       // 步骤4: 生成报告叙述
       options.onProgress?.('generating_narratives', 80);
-      const narratives = await this.generateNarratives(context);
+      const narratives = await this.generateNarratives(context, options.enableAgent || {});
 
       // 步骤5: 生成PDF
       options.onProgress?.('generating_pdf', 90);
-      const { pdfBuffer, pdfPath } = await this.generatePDF(context, narratives);
+      const { pdfBlob, pdfUrl } = await this.generatePDF(context, narratives);
 
       options.onProgress?.('complete', 100);
 
@@ -149,8 +152,8 @@ export class InvestmentReportService {
         generatedAt: new Date(),
         dataContext: context,
         narratives,
-        pdfBuffer,
-        pdfPath,
+        pdfBlob,
+        pdfUrl,
         metadata: {
           generationTime,
           agentsExecuted,
@@ -160,7 +163,11 @@ export class InvestmentReportService {
       };
     } catch (error) {
       options.onProgress?.('error', 0);
-      throw new Error(`报告生成失败: ${error instanceof Error ? error.message : String(error)}`);
+
+      // Wrap unknown errors in AgentExecutionError for better tracking
+      const reportError = wrapUnknownAgentError(error, 'InvestmentReportService', 'generateReport', '报告生成失败');
+      console.error('[InvestmentReportService] Generation failed:', reportError.toLogObject());
+      throw reportError;
     }
   }
 
@@ -270,13 +277,16 @@ export class InvestmentReportService {
     try {
       await agentFn();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error(`[InvestmentReportService] ${agentName} 执行失败:`, errorMessage);
+      // Wrap unknown errors in AgentExecutionError for better tracking
+      const agentError = wrapUnknownAgentError(error, agentName, 'execute', `${agentName} agent执行失败`);
+      console.error(`[InvestmentReportService] ${agentName} 执行失败:`, agentError.toLogObject());
 
       errors.push({
         component: agentName,
-        error: errorMessage,
+        error: getErrorMessage(error),
         fallback: '使用mock数据或跳过该组件',
+        // Mark if error is recoverable (e.g., timeout)
+        recoverable: agentError.isRecoverable(),
       });
 
       // 回退策略：根据智能体类型决定回退方案
@@ -880,18 +890,28 @@ export class InvestmentReportService {
   }
 
   /**
-   * 步骤4: 生成报告叙述（并行生成各章节）
+   * 步骤4: 生成报告叙述（使用新的 6 节结构）
+   *
+   * 新的章节结构：
+   * 1. executive_summary - 执行摘要
+   * 2. project_overview - 项目概况（合并了业主背景调查）
+   * 3. financial_analysis - 财务分析
+   * 4. policy_environment - 政策环境
+   * 5. risk_assessment - 风险评估
+   * 6. investment_recommendation - 投资建议
    */
-  private async generateNarratives(context: ReportDataContext): Promise<Record<string, string>> {
-    const chapters = [
-      'project_overview',
-      'owner_due_diligence',
-      'policy_analysis',
-      'technical_assessment',
-      'financial_analysis',
-      'risk_assessment',
-      'investment_recommendation',
-    ];
+  private async generateNarratives(
+    context: ReportDataContext,
+    enableAgent: { reportNarrative?: boolean } = {}
+  ): Promise<Record<string, string>> {
+    // 使用新的报告结构
+    const chapters = REPORT_STRUCTURE.map(section => section.id);
+
+    // 如果 AI 被禁用，使用模板回退
+    if (!enableAgent.reportNarrative) {
+      console.log('[InvestmentReportService] AI disabled, using template fallback');
+      return this.generateTemplateNarratives(context);
+    }
 
     // 并行生成所有章节
     const narratives = await Promise.all(
@@ -908,34 +928,183 @@ export class InvestmentReportService {
   }
 
   /**
+   * 生成模板回退的叙述（不使用 AI）
+   */
+  private generateTemplateNarratives(context: ReportDataContext): Record<string, string> {
+    const chapters = REPORT_STRUCTURE.map(section => section.id);
+    const project = context.project;
+    const fm = context.getFinancialMetrics();
+
+    // 简单的模板回退
+    return chapters.reduce((acc, chapter) => {
+      switch (chapter) {
+        case 'executive_summary':
+          acc[chapter] = `## 执行摘要
+
+### 核心结论
+
+本项目 ${project.projectName} 是一个位于${project.province}的工商业储能系统投资机会。经过详细分析，该项目展现出良好的投资价值。
+
+### 关键指标
+
+- **内部收益率 (IRR)**: ${fm?.irr?.toFixed(2) || 'N/A'}%
+- **净现值 (NPV)**: ¥${fm?.npv?.toFixed(0) || 'N/A'}万
+- **投资回收期**: ${fm?.paybackPeriodStatic?.toFixed(1) || 'N/A'}年
+- **储能平准化成本 (LCOS)**: ¥${fm?.lcoc?.toFixed(2) || 'N/A'}/kWh
+
+### 主要优势
+
+1. 峰谷价差套利空间大
+2. 政策支持力度强
+3. 投资回报周期合理
+
+### 投资建议
+
+基于以上分析，该项目具有良好的投资价值，建议考虑投资。`;
+          break;
+
+        case 'project_overview':
+          acc[chapter] = `## 项目概况
+
+### 项目基本信息
+
+- **项目名称**: ${project.projectName}
+- **项目地点**: ${project.province}
+- **系统容量**: ${project.systemSize.capacity} kWh
+- **额定功率**: ${project.systemSize.power} kW
+
+### 项目背景
+
+该项目旨在通过配置工商业储能系统，实现峰谷电价套利，降低用电成本，提升能源利用效率。
+
+### 系统配置
+
+系统采用先进的锂电池储能技术，配备完善的电池管理系统（BMS）和能量管理系统（EMS），确保系统安全稳定运行。`;
+          break;
+
+        case 'financial_analysis':
+          acc[chapter] = `## 财务分析
+
+### 关键财务指标
+
+- **内部收益率 (IRR)**: ${fm?.irr?.toFixed(2)}%
+- **净现值 (NPV)**: ¥${fm?.npv?.toFixed(0)}万
+- **投资回收期**: ${fm?.paybackPeriodStatic?.toFixed(1)}年
+- **储能平准化成本 (LCOS)**: ¥${fm?.lcoc?.toFixed(2)}/kWh
+
+### 现金流分析
+
+项目在 25 年运营期内产生稳定的现金流，具有良好的盈利能力。
+
+### 投资回报
+
+根据测算，项目内部收益率达到 ${fm?.irr?.toFixed(2)}%，投资回收期约 ${fm?.paybackPeriodStatic?.toFixed(1)} 年，符合行业投资标准。`;
+          break;
+
+        case 'policy_environment':
+          acc[chapter] = `## 政策环境
+
+### 国家政策支持
+
+国家层面高度重视储能产业发展，出台了一系列支持政策，为储能项目提供了良好的政策环境。
+
+### 地方政策
+
+${project.province} 地方政府积极支持储能项目发展，可能存在相关补贴政策。
+
+### 市场环境
+
+当前电力市场改革深入推进，峰谷电价差逐步扩大，为储能项目提供了盈利空间。`;
+          break;
+
+        case 'risk_assessment':
+          acc[chapter] = `## 风险评估
+
+### 技术风险
+
+- 电池性能衰减风险：中等
+- 系统集成风险：低
+
+### 市场风险
+
+- 电价政策变化风险：中等
+- 电力市场需求波动：低
+
+### 政策风险
+
+- 补贴政策调整风险：低
+
+### 运营风险
+
+- 设备维护风险：低
+- 安全管理风险：低
+
+### 风险缓解措施
+
+建议建立完善的运维体系，定期进行设备检修，确保系统稳定运行。`;
+          break;
+
+        case 'investment_recommendation':
+          acc[chapter] = `## 投资建议
+
+### 综合评估
+
+经过全面分析，该项目具有良好的投资价值。
+
+### 投资建议
+
+**推荐投资**
+
+### 推荐理由
+
+1. 财务指标优秀：内部收益率 ${fm?.irr?.toFixed(2)}%，高于行业平均水平
+2. 政策环境良好：国家和地方政策支持
+3. 技术成熟可靠：储能技术已得到广泛应用
+4. 风险可控：各类风险均处于可控范围
+
+### 行动建议
+
+1. 尽快完成项目立项和审批
+2. 选择优质设备供应商
+3. 建立完善的运维体系
+4. 密切关注政策变化
+
+### 免责声明
+
+本投资建议基于当前可获得的信息做出。实际投资决策应考虑更详细的尽职调查和市场调研。`;
+          break;
+
+        default:
+          acc[chapter] = `## ${chapter}\n\n该章节内容待完善。`;
+      }
+      return acc;
+    }, {} as Record<string, string>);
+  }
+
+  /**
    * 步骤5: 生成PDF
    */
   private async generatePDF(
     context: ReportDataContext,
     narratives: Record<string, string>
-  ): Promise<{ pdfBuffer?: Buffer; pdfPath?: string }> {
+  ): Promise<{ pdfBlob?: Blob; pdfUrl?: string }> {
     const pdfGenerator = new PDFGenerator();
     const result = await pdfGenerator.generatePDF(context, narratives, {
-      format: 'markdown', // Can be 'markdown', 'html', or 'pdf'
       onProgress: (step, progress) => {
         console.log(`[PDF Generation] [${progress}%] ${step}`);
       },
     });
 
-    if (result.success && result.outputPath) {
-      // Read the generated file
-      const fs = await import('fs/promises');
-      const pdfBuffer = await fs.readFile(result.outputPath);
-
+    if (result.success && result.blob) {
       return {
-        pdfBuffer,
-        pdfPath: result.outputPath,
+        pdfBlob: result.blob,
+        pdfUrl: result.url,
       };
     }
 
     return {
-      pdfBuffer: undefined,
-      pdfPath: undefined,
+      pdfBlob: undefined,
+      pdfUrl: undefined,
     };
   }
 
@@ -971,7 +1140,7 @@ export class InvestmentReportService {
 
       // 步骤5
       yield { step: 'generating_pdf', progress: 90, message: '生成PDF报告...' };
-      const { pdfBuffer, pdfPath } = await this.generatePDF(context, narratives);
+      const { pdfBlob, pdfUrl } = await this.generatePDF(context, narratives);
 
       yield { step: 'complete', progress: 100, message: '报告生成完成' };
 
@@ -980,8 +1149,8 @@ export class InvestmentReportService {
         generatedAt: new Date(),
         dataContext: context,
         narratives,
-        pdfBuffer,
-        pdfPath,
+        pdfBlob,
+        pdfUrl,
         metadata: {
           generationTime: Date.now() - startTime,
           agentsExecuted,
@@ -990,7 +1159,13 @@ export class InvestmentReportService {
         },
       };
     } catch (error) {
-      yield { step: 'error', progress: 0, message: `报告生成失败: ${error instanceof Error ? error.message : String(error)}` };
+      const errorMessage = getErrorMessage(error);
+      yield { step: 'error', progress: 0, message: `报告生成失败: ${errorMessage}` };
+
+      // Re-throw with better error context if it's not already an InvestmentReportError
+      if (!isInvestmentReportError(error)) {
+        throw wrapUnknownAgentError(error, 'InvestmentReportService', 'generateReport', '报告生成失败');
+      }
       throw error;
     }
   }

@@ -10,6 +10,7 @@
 
 import { Project } from '@/domain/models/Project';
 import { OwnerInfo } from '@/domain/schemas/ProjectSchema';
+import { ValidationError, MissingDataError } from './errors';
 
 // 使用现有的计算引擎类型
 import { FinancialMetrics } from '@/domain/services/FinancialCalculator';
@@ -197,16 +198,15 @@ export interface RiskAssessmentReport {
   }>;
 }
 
-// ============ 报告章节类型 ============
+// ============ 报告章节类型（新的 6 节结构）============
 
 export type ChapterType =
-  | 'project_overview'
-  | 'owner_due_diligence'
-  | 'policy_analysis'
-  | 'technical_assessment'
-  | 'financial_analysis'
-  | 'risk_assessment'
-  | 'investment_recommendation';
+  | 'executive_summary'          // 执行摘要
+  | 'project_overview'           // 项目概况（合并业主背景调查）
+  | 'financial_analysis'         // 财务分析
+  | 'policy_environment'         // 政策环境
+  | 'risk_assessment'            // 风险评估
+  | 'investment_recommendation'; // 投资建议
 
 // ============ 上下文主类 ============
 
@@ -314,23 +314,23 @@ export class ReportDataContext {
 
     // 验证项目基础信息
     if (!this.project.id) {
-      this.validationErrors.push('项目ID缺失');
+      this.validationErrors.push({ field: 'project.id', message: '项目ID缺失' });
     }
 
     if (!this.project.ownerInfo?.companyName) {
-      this.validationErrors.push('业主公司名称缺失');
+      this.validationErrors.push({ field: 'project.ownerInfo.companyName', message: '业主公司名称缺失' });
     }
 
     if (!this.project.facilityInfo) {
-      this.validationErrors.push('场地信息缺失');
+      this.validationErrors.push({ field: 'project.facilityInfo', message: '场地信息缺失' });
     }
 
     if (!this.project.tariffDetail) {
-      this.validationErrors.push('电价信息缺失');
+      this.validationErrors.push({ field: 'project.tariffDetail', message: '电价信息缺失' });
     }
 
     if (this.validationErrors.length > 0) {
-      throw new Error(`数据验证失败:\n${this.validationErrors.join('\n')}`);
+      throw new ValidationError('数据验证失败', this.validationErrors);
     }
   }
 
