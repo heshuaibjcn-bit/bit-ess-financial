@@ -69,14 +69,30 @@ export class CashFlowCalculator {
     const isNewSchema = 'batteryCostPerKwh' in costs;
 
     if (isNewSchema) {
-      // New schema: capacity (MW), duration (hours)
-      const capacityKwh = systemSize.capacity * 1000;
-      const powerKw = capacityKwh / systemSize.duration;
+      // New schema: capacity (kWh), power (kW) or capacity (kWh), duration (hours)
+      const capacityKwh = systemSize.capacity;
+
+      // If duration is provided, calculate power from capacity and duration
+      // Otherwise, use the directly provided power value
+      let powerKw: number;
+      if (systemSize.duration && systemSize.duration > 0) {
+        powerKw = capacityKwh / systemSize.duration;
+      } else if (systemSize.power && systemSize.power > 0) {
+        powerKw = systemSize.power;
+      } else {
+        throw new Error('Either systemSize.duration or systemSize.power must be provided');
+      }
 
       const baseInvestment =
-        costs.batteryCostPerKwh * capacityKwh +
-        costs.pcsCostPerKw * powerKw +
-        (costs.emsCost || 0);
+        (costs.batteryCostPerKwh || 0) * capacityKwh +
+        (costs.pcsCostPerKw || 0) * powerKw +
+        (costs.emsCostPerKwh || 0) * capacityKwh +
+        (costs.bmsCostPerKwh || 0) * capacityKwh +
+        (costs.thermalMgmtCostPerKwh || 0) * capacityKwh +
+        (costs.fireProtectionCostPerKwh || 0) * capacityKwh +
+        (costs.containerCostPerKwh || 0) * capacityKwh +
+        (costs.installationCostPerKw || 0) * powerKw +
+        (costs.otherCostPerKwh || 0) * capacityKwh;
 
       return baseInvestment * (1 + (costs.contingencyPercent || 0));
     } else {
@@ -279,10 +295,19 @@ export class CashFlowCalculator {
     // Calculate initial investment
     const initialInvestment = this.calculateInitialInvestment(input);
 
-    // Calculate power from capacity and duration (for new schema)
-    // capacity is in MW, duration is in hours
-    const capacityKwh = input.systemSize.capacity * 1000;
-    const powerKw = capacityKwh / input.systemSize.duration;
+    // Handle capacity and power (for new schema)
+    // systemSize.capacity is already in kWh
+    // systemSize.power is already in kW (if provided)
+    // If duration is provided, calculate power from capacity and duration
+    const capacityKwh = input.systemSize.capacity;
+    let powerKw: number;
+    if (input.systemSize.duration && input.systemSize.duration > 0) {
+      powerKw = capacityKwh / input.systemSize.duration;
+    } else if (input.systemSize.power && input.systemSize.power > 0) {
+      powerKw = input.systemSize.power;
+    } else {
+      throw new Error('Either systemSize.duration or systemSize.power must be provided');
+    }
 
     // Check if using new schema (depthOfDischarge) or old schema (dod)
     const dod = 'depthOfDischarge' in input.operatingParams
@@ -322,7 +347,7 @@ export class CashFlowCalculator {
 
     // Years 1+: Operating years (revenue - costs)
     for (let year = 1; year < years; year++) {
-      const revenue = revenueResult.annualRevenues[year];
+      const revenue = revenueResult.annualRevenues[year - 1]; // Fixed: year 1 maps to annualRevenues[0]
       const costs = this.calculateYearlyCosts(input, initialInvestment, year);
       const netCashFlow = revenue - costs.total;
 

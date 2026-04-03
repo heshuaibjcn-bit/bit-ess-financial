@@ -1,0 +1,172 @@
+{
+  "terminology": [
+    {
+      "term": "内部收益率",
+      "english": "Internal Rate of Return (IRR)",
+      "definition": "项目在整个生命周期内的年化收益率，使项目净现值等于零时的折现率",
+      "forbidden_synonyms": ["回报率", "收益率", "投资回报"],
+      "example_usage": "本项目内部收益率为 12.5%，高于行业平均水平。"
+    },
+    {
+      "term": "净现值",
+      "english": "Net Present Value (NPV)",
+      "definition": "项目未来现金流的现值与初始投资的差额，反映项目创造的价值",
+      "forbidden_synonyms": ["现值", "净收益", "利润现值"],
+      "example_usage": "项目净现值为 230 万元，表明项目具有正向价值创造。"
+    },
+    {
+      "term": "投资回收期",
+      "english": "Payback Period",
+      "definition": "收回初始投资所需的时间，从项目启动开始计算",
+      "forbidden_synonyms": ["回本周期", "回报周期", "资金回收时间"],
+      "example_usage": "项目投资回收期为 5.2 年，符合行业预期。"
+    },
+    {
+      "term": "储能平准化成本",
+      "english": "Levelized Cost of Storage (LCOS)",
+      "definition": "生命周期总成本除以总放电量，反映单位储能成本",
+      "forbidden_synonyms": ["度电成本", "储能成本", "单位成本"],
+      "example_usage": "储能平准化成本为 0.65 元/kWh，具有市场竞争优势。"
+    },
+    {
+      "term": "投资利润率",
+      "english": "Return on Investment (ROI)",
+      "definition": "净现值与初始投资的比值，反映投资效率",
+      "forbidden_synonyms": ["利润率", "回报率", "收益率"],
+      "example_usage": "项目投资利润率为 15.3%，投资效益良好。"
+    },
+    {
+      "term": "容量补贴",
+      "english": "Capacity Subsidy",
+      "definition": "根据储能系统容量规模给予的补贴，通常按 kW 或 MW 计算",
+      "forbidden_synonyms": ["功率补贴", "规模补贴", "容量奖励"],
+      "example_usage": "省级容量补贴标准为 100 元/kW。"
+    },
+    {
+      "term": "电量补贴",
+      "english": "Electricity Subsidy",
+      "definition": "根据实际放电量给予的补贴，通常按 kWh 或 MWh 计算",
+      "forbidden_synonyms": ["放电补贴", "电量奖励", "度电补贴"],
+      "example_usage": "年度电量补贴收入预计为 50 万元。"
+    },
+    {
+      "term": "投资补贴",
+      "english": "Investment Subsidy",
+      "definition": "根据项目投资额给予的一次性补贴",
+      "forbidden_synonyms": ["设备补贴", "建设补贴", "投资奖励"],
+      "example_usage": "项目可获得投资补贴 200 万元。"
+    },
+    {
+      "term": "峰谷价差",
+      "english": "Peak-Valley Price Spread",
+      "definition": "电力高峰时段与低谷时段的电价差额",
+      "forbidden_synonyms": ["电价差", "峰谷差价", "价差"],
+      "example_usage": "当地峰谷价差为 0.85 元/kWh，套利空间可观。"
+    },
+    {
+      "term": "年利用小时数",
+      "english": "Annual Utilization Hours",
+      "definition": "储能系统每年实际运行的等效小时数",
+      "forbidden_synonyms": ["运行时长", "使用时间", "工作小时"],
+      "example_usage": "项目年利用小时数预计为 1,500 小时。"
+    },
+    {
+      "term": "额定功率",
+      "english": "Rated Power",
+      "definition": "储能系统在标准条件下能够持续输出的功率",
+      "forbidden_synonyms": ["功率", "输出功率", "额定容量"],
+      "example_usage": "系统额定功率为 500 kW。"
+    },
+    {
+      "term": "额定容量",
+      "english": "Rated Capacity",
+      "definition": "储能系统能够存储的最大电量",
+      "forbidden_synonyms": ["容量", "储能容量", "电池容量"],
+      "example_usage": "系统额定容量为 1,000 kWh。"
+    },
+    {
+      "term": "充放电策略",
+      "english": "Charge-Discharge Strategy",
+      "definition": "储能系统的充放电运行规则和优化算法",
+      "forbidden_synonyms": ["运行策略", "调度策略", "充放电规则"],
+      "example_usage": "采用峰谷套利充放电策略。"
+    },
+    {
+      "term": "深度放电",
+      "english": "Depth of Discharge (DOD)",
+      "definition": "电池放电量占总容量的百分比",
+      "forbidden_synonyms": ["放电深度", "放电率", "用电深度"],
+      "example_usage": "系统每日深度放电为 90%。"
+    },
+    {
+      "term": "循环寿命",
+      "english": "Cycle Life",
+      "definition": "电池在规定条件下能够进行的充放电循环次数",
+      "forbidden_synonyms": ["使用寿命", "电池寿命", "寿命"],
+      "example_usage": "电池循环寿命为 6,000 次。"
+    },
+    {
+      "term": "系统效率",
+      "english": "Round-Trip Efficiency",
+      "definition": "储能系统从充电到放电的能源转换效率",
+      "forbidden_synonyms": ["效率", "转换效率", "充放电效率"],
+      "example_usage": "系统交流侧效率为 88%。"
+    },
+    {
+      "term": "敏感性分析",
+      "english": "Sensitivity Analysis",
+      "definition": "分析关键参数变化对项目财务指标的影响程度",
+      "forbidden_synonyms": ["情景分析", "参数分析", "影响分析"],
+      "example_usage": "敏感性分析显示电价是最敏感因素。"
+    },
+    {
+      "term": "盈亏平衡点",
+      "english": "Break-Even Point",
+      "definition": "项目收入等于成本时的状态或时间点",
+      "forbidden_synonyms": ["平衡点", "回本点", "盈利点"],
+      "example_usage": "项目在第 5 年达到盈亏平衡。"
+    },
+    {
+      "term": "风险矩阵",
+      "english": "Risk Matrix",
+      "definition": "用于评估和分类风险的可能性和影响程度的工具",
+      "forbidden_synonyms": ["风险评估", "风险分析", "风险表"],
+      "example_usage": "通过风险矩阵识别出 5 个高风险因素。"
+    },
+    {
+      "term": "缓解策略",
+      "english": "Mitigation Strategy",
+      "definition": "降低风险发生概率或影响程度的措施",
+      "forbidden_synonyms": ["应对措施", "风险应对", "缓解措施"],
+      "example_usage": "针对技术风险制定了三项缓解策略。"
+    },
+    {
+      "term": "电力市场交易",
+      "english": "Electricity Market Trading",
+      "definition": "在电力市场上进行的电能买卖交易活动",
+      "forbidden_synonyms": ["市场交易", "电力交易", "电能交易"],
+      "example_usage": "项目参与电力市场交易获得额外收益。"
+    },
+    {
+      "term": "辅助服务",
+      "english": "Ancillary Services",
+      "definition": "为维持电力系统稳定运行提供的支持服务",
+      "forbidden_synonyms": ["辅助服务市场", "调频调峰", "电网服务"],
+      "example_usage": "储能可提供调频等辅助服务。"
+    },
+    {
+      "term": "自发自用",
+      "english": "Self-Consumption",
+      "definition": "光伏或储能系统所发电量由用户自己消纳",
+      "forbidden_synonyms": ["自用", "自用率", "自发用电"],
+      "example_usage": "项目自发自用比例为 85%。"
+    },
+    {
+      "term": "余电上网",
+      "english": "Grid Export",
+      "definition": "光伏或储能系统多余电量送入电网",
+      "forbidden_synonyms": ["上网电量", "卖电", "余电销售"],
+      "example_usage": "余电上网电价为 0.45 元/kWh。"
+    }
+  ]
+}

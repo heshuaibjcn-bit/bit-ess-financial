@@ -215,21 +215,25 @@ Use professional engineering language. Base recommendations on proven technologi
     this.log('Getting recommended configuration');
 
     // Import CapacityRecommender dynamically
-    const { CapacityRecommender } = await import('@/domain/services/CapacityRecommender');
-    const recommender = new CapacityRecommender();
+    const { recommendCapacity } = await import('@/domain/services/CapacityRecommender');
 
     // Get recommendation
-    const recommendation = await recommender.recommend({
+    const recommendation = await recommendCapacity({
+      ownerInfo: input.ownerInfo,
       facilityInfo: input.facilityInfo,
       tariffDetail: input.tariffInfo,
-      riskPreference: input.userPreferences?.riskTolerance || 'standard',
     });
+
+    // Select the proposal based on risk tolerance
+    const selectedProposal = recommendation.recommended === 'conservative' ? recommendation.conservative :
+                           recommendation.recommended === 'standard' ? recommendation.standard :
+                           recommendation.aggressive;
 
     // Convert to our format
     return {
-      capacity: recommendation.recommended.capacity,
-      power: recommendation.recommended.power,
-      duration: recommendation.recommended.capacity / recommendation.recommended.power,
+      capacity: selectedProposal.recommendedCapacity,
+      power: selectedProposal.recommendedPower,
+      duration: selectedProposal.recommendedCapacity / selectedProposal.recommendedPower,
       technology: 'Lithium-ion (LiFePO4)',
       brands: this.selectBrands(input.userPreferences),
       chargeStrategy: 'Peak-valley arbitrage with demand response',

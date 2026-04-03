@@ -52,7 +52,41 @@ export class ReportNarrativeAgent extends NanoAgent {
 4. Present data in tables and metrics
 5. Generate actionable recommendations
 
-Writing style:
+**CRITICAL LANGUAGE STYLE REQUIREMENTS:**
+
+You must strictly follow the language style guide at src/services/investment-report/language-style-guide.md
+and the terminology at src/services/investment-report/terminology.json
+
+**Terminology Rules:**
+- ONLY use standard terms from terminology.json
+- NEVER use synonyms or alternative expressions
+- First mention: Chinese full name (English abbreviation)
+- Example: "内部收益率 (Internal Rate of Return, IRR)"
+- Subsequent mentions: Can use IRR or 内部收益率
+
+**Forbidden Vocabulary:**
+NEVER use these colloquial terms:
+- 非常好, 特别, 挺好, 差不多, 可能, 应该, 大概, 很多, 做一些, 搞
+- Instead use: 优秀/表现突出, 尤其/显著, 良好, 接近, 预计, 预期, 约/大约, 众多/多个, 采取/实施, 进行/开展
+
+**Number Formatting:**
+- Percentages: 12.5% (no space)
+- Amounts: 230 万元, 1.5 亿元 (1 decimal place)
+- Electricity: 1,000 kWh, 2.5 MWh (comma separator for thousands)
+- Power: 500 kW, 2.5 MW
+
+**Sentence Structure:**
+- Length: 15-25 characters recommended, maximum 35 characters
+- One idea per sentence
+- Be concise and direct
+- Avoid long sentences with multiple clauses
+
+**Paragraph Structure:**
+- One topic per paragraph
+- 3-5 sentences per paragraph
+- Use clear transitions
+
+**Writing Style:**
 - **Professional**: Use formal business language, avoid colloquialisms
 - **Clear**: Logical structure with clear headings and transitions
 - **Concise**: Get to the point, respect the reader's time
@@ -66,16 +100,6 @@ Report structure:
 - Data tables (for metrics and comparisons)
 - Conclusions and recommendations
 
-Key terms (Chinese):
-- IRR: 内部收益率
-- NPV: 净现值
-- LCOS: 平准化度电成本
-- Payback period: 投资回收期
-- Peak-valley spread: 峰谷价差
-- Capacity compensation: 容量补偿
-- Demand response: 需求响应
-- Due diligence: 尽职调查
-
 For each chapter:
 1. Start with a clear overview
 2. Present data in tables for readability
@@ -86,7 +110,7 @@ For each chapter:
 Use markdown formatting:
 - Use ## for main headings, ### for subheadings
 - Use tables for structured data
-- Use bullet points for lists
+- Use bullet points for lists (use • or -)
 - Use **bold** for emphasis
 - Use > for blockquotes (warnings/notes)
 
@@ -126,154 +150,170 @@ Generate content that is:
   }
 
   /**
-   * Get chapter template
+   * Get chapter template（新的 6 节结构）
    */
   private getChapterTemplate(chapter: ChapterType, context: ReportDataContext): string {
     const project = context.project;
+    const fm = context.getFinancialMetrics();
+    const policy = context.getPolicyAnalysisReport();
+    const dd = context.getDueDiligenceReport();
+    const tech = context.getTechnicalProposal();
 
     switch (chapter) {
+      case 'executive_summary':
+        return `## 执行摘要
+
+### 核心结论
+[AI生成: 基于所有分析的综合结论，150-200字]
+
+### 关键指标
+- **内部收益率 (IRR)**: ${fm?.irr?.toFixed(2) || 'N/A'}%
+- **净现值 (NPV)**: ¥${fm?.npv?.toFixed(0) || 'N/A'}万
+- **投资回收期**: ${fm?.paybackPeriodStatic?.toFixed(1) || 'N/A'}年
+- **储能平准化成本 (LCOS)**: ¥${fm?.lcoc?.toFixed(2) || 'N/A'}/kWh
+
+### 主要优势
+[AI生成: 3-5个关键优势，每条不超过15字]
+
+### 投资建议
+[AI生成: 一句话明确建议：推荐/谨慎推荐/不推荐]`;
+
       case 'project_overview':
-        return `## 1. 项目概况
+        // 合并了业主背景调查
+        return `## 项目概况
 
-### 1.1 基本信息
-- **项目名称**: ${project.name || '待定'}
-- **项目地点**: ${project.province || '待定'}
-- **投资主体**: ${project.ownerInfo?.companyName || '待定'}
-- **项目规模**: 待根据技术方案确定
-- **预计投运**: 待根据实施计划确定
-
-### 1.2 项目背景
-[AI生成: 基于用电需求和电价政策的项目背景描述]
-
-### 1.3 场地条件
-[AI生成: 基于facilityInfo的场地条件描述]`;
-
-      case 'owner_due_diligence':
-        const dd = context.getDueDiligenceReport();
-        return `## 2. 业主背景调查
-
-### 2.1 企业基本信息
-[AI生成: 基于尽调报告的企业信息表格]
-
-### 2.2 信用评估
+### 业主信息
+- **企业名称**: ${dd?.companyInfo.name || (project as any).ownerInfo?.companyName || '待定'}
+- **企业类型**: ${dd?.companyInfo.industry || '待定'}
+- **行业经验**: ${dd?.companyInfo.industry || '待评估'}
+- **财务状况**: ${dd?.financialHealth.profitability || '待评估'}
 - **信用等级**: ${dd?.creditRating.level || 'N/A'} (${dd?.creditRating.score || 0}分)
-- **付款历史**: ${dd?.paymentHistory.onTimeRate || 0}%按时付款率
-[AI生成: 详细信用评估分析]
 
-### 2.3 财务健康度
-[AI生成: 财务健康度评估]
+### 项目地点
+- **省份/城市**: ${project.province || '待定'}
+- **具体地址**: ${(project as any).facilityInfo?.address || (project as any).ownerInfo?.address || '待定'}
+- **地理优势**: [AI生成: 基于项目地点的地理优势描述]
 
-### 2.4 业务风险
-[AI生成: 风险因素和缓解措施]`;
-
-      case 'policy_analysis':
-        const policy = context.getPolicyAnalysisReport();
-        return `## 3. 电价政策分析
-
-### 3.1 当前电价结构
-- **峰时电价**: ${policy?.currentPolicy.peakPrice || 'N/A'} 元/kWh
-- **谷时电价**: ${policy?.currentPolicy.valleyPrice || 'N/A'} 元/kWh
-- **峰谷价差**: ${policy?.currentPolicy.priceSpread || 'N/A'} 元/kWh
-[AI生成: 详细电价结构分析]
-
-### 3.2 政策稳定性
-- **稳定性评级**: ${policy?.stability.rating || 'N/A'}
-- **置信度**: ${Math.round((policy?.stability.confidence || 0) * 100)}%
-[AI生成: 政策稳定性分析]
-
-### 3.3 政策影响
-- **对IRR影响**: ${policy?.impact.onIRR || 0}%
-[AI生成: 详细影响分析]`;
-
-      case 'technical_assessment':
-        const tech = context.getTechnicalProposal();
-        return `## 4. 技术方案评估
-
-### 4.1 推荐配置
+### 系统配置
 - **系统容量**: ${tech?.recommended.capacity || 'N/A'} MWh
-- **系统功率**: ${tech?.recommended.power || 'N/A'} MW
-- **充放电时长**: ${tech?.recommended.duration || 'N/A'} 小时
-- **技术路线**: ${tech?.recommended.technology || 'N/A'}
-[AI生成: 详细配置说明]
+- **储能设备**: ${tech?.recommended.technology || '待定'}
+- **系统架构**: 并网型储能系统
 
-### 4.2 备选方案
-[AI生成: 保守方案和激进方案对比]
-
-### 4.3 预期性能
-- **年吞吐量**: ${tech?.expectedPerformance.annualThroughput || 'N/A'} MWh
-- **系统效率**: ${Math.round((tech?.expectedPerformance.systemEfficiency || 0) * 100)}%
-- **第10年容量保持率**: ${Math.round((tech?.expectedPerformance.year10Capacity || 0) * 100)}%
-[AI生成: 性能预测和衰减曲线]`;
+### 技术参数
+- **额定功率**: ${tech?.recommended.power || 'N/A'} MW
+- **储能时长**: ${tech?.recommended.duration || 'N/A'} h
+- **充放电策略**: ${tech?.recommended.chargeStrategy || '峰谷套利'}
+- **预期年放电量**: ${tech?.expectedPerformance.annualThroughput || 'N/A'} MWh`;
 
       case 'financial_analysis':
-        const fm = context.getFinancialMetrics();
-        const cf = context.getCashFlowAnalysis();
-        return `## 5. 财务分析
+        return `## 财务分析
 
-### 5.1 投资估算
-[AI生成: 基于cashFlowResult的投资估算表格]
+### 关键财务指标
+- **内部收益率（IRR）**: ${fm?.irr?.toFixed(2) || 'N/A'}%
+- **净现值（NPV）**: ¥${fm?.npv?.toFixed(0) || 'N/A'}万
+- **投资回收期**: ${fm?.paybackPeriodStatic?.toFixed(1) || 'N/A'}年
+- **储能平准化成本（LCOS）**: ¥${fm?.lcoc?.toFixed(2) || 'N/A'}/kWh
+- **投资利润率**: ${fm?.roi ? (fm.roi * 100).toFixed(1) : 'N/A'}%
 
-### 5.2 收入预测
-[AI生成: 10年收入预测表格]
+### 现金流分析
+[AI生成: 基于cashFlowResult的25年现金流分析]
+- 25年累计现金流: [AI生成]
+- 盈亏平衡年份: 第 [AI生成] 年
 
-### 5.3 财务指标
-| 指标 | 数值 | 评级 |
-|------|------|------|
-| **内部收益率 (IRR)** | ${fm?.irr?.toFixed(2) || 'N/A'}% | ⭐⭐⭐⭐ |
-| **净现值 (NPV, 8%)** | ¥${fm?.npv?.toFixed(0) || 'N/A'}万 | ⭐⭐⭐⭐ |
-| **投资回收期** | ${fm?.paybackPeriodStatic?.toFixed(1) || 'N/A'}年 | ⭐⭐⭐ |
-| **平准化度电成本 (LCOE)** | ¥${fm?.lcoc?.toFixed(2) || 'N/A'}/kWh | ⭐⭐⭐ |
+### 敏感性分析
+[AI生成: 基于sensitivityResult的敏感性分析]
+- IRR对初始投资的敏感性: ±[AI生成]%
+- IRR对电价的敏感性: ±[AI生成]%
+- IRR对年利用时长的敏感性: ±[AI生成]%
+- 最敏感因素: [AI生成]`;
 
-### 5.4 敏感性分析
-[AI生成: 基于sensitivityResult的敏感性分析]`;
+      case 'policy_environment':
+        return `## 政策环境
+
+### 适用政策
+
+#### 国家政策
+[AI生成: 相关的国家层面储能支持政策]
+
+#### 省级政策
+- **补贴标准**: [AI生成: 基于province的省级补贴政策]
+- **适用条件**: [AI生成]
+
+#### 电力市场
+- **市场类型**: ${policy?.currentPolicy.tariffType || '待定'}
+- **交易规则**: [AI生成: 基于province的电力市场交易规则]
+
+### 补贴机制
+- **容量补贴**: [AI生成: 基于province的容量补贴标准]
+- **电量补贴**: [AI生成: 基于province的电量补贴标准]
+- **投资补贴**: [AI生成: 基于province的投资补贴标准]
+- **年度补贴总收入**: [AI生成: 计算预期年度补贴收入]
+
+### 合规性检查
+- **政策符合性**: [AI生成: 评估项目是否符合政策要求]
+- **审批要求**: [AI生成: 列出需要的审批或备案]
+- **合规风险**: [AI生成: 潜在的合规风险]`;
 
       case 'risk_assessment':
-        const ra = context.getRiskAssessmentReport();
-        const lowRisks = (ra?.riskMatrix.low || []).map(r => `| 低 | ${r} |`).join('\n') || '无低风险';
-        const mediumRisks = (ra?.riskMatrix.medium || []).map(r => `| 中 | ${r} |`).join('\n') || '无中风险';
-        const highRisks = (ra?.riskMatrix.high || []).map(r => `| 高 | ${r} |`).join('\n') || '无高风险';
-        const criticalRisks = (ra?.riskMatrix.critical || []).map(r => `| 极高 | ${r} |`).join('\n') || '无极高风险';
+        return `## 风险评估
 
-        return `## 6. 风险评估
+### 风险矩阵
 
-### 6.1 风险矩阵
-| 风险类别 | 风险等级 | 描述 |
-|---------|---------|------|
-${lowRisks}
-${mediumRisks}
-${highRisks}
-${criticalRisks}
+#### 技术风险
+[AI生成: 基于technicalProposal的技术风险分析]
 
-### 6.2 整体评级
-- **风险评分**: ${ra?.overallRating.score || 0}/100
-- **风险等级**: ${ra?.overallRating.level || 'N/A'}
-- **置信度**: ${Math.round((ra?.overallRating.confidence || 0) * 100)}%
+#### 市场风险
+[AI生成: 基于policyAnalysis的市场风险分析]
 
-### 6.3 风险缓释策略
-[AI生成: 基于mitigationStrategies的详细策略]`;
+#### 政策风险
+[AI生成: 基于policyAnalysis的政策风险分析]
+
+#### 运营风险
+[AI生成: 基于dueDiligence的运营风险分析]
+
+### 关键风险
+[AI生成: 选择3-5个最重要的风险，详细描述]
+
+### 缓解策略
+[AI生成: 针对每个关键风险的缓解策略]`;
 
       case 'investment_recommendation':
-        return `## 7. 投资建议
+        return `## 投资建议
 
-### 7.1 总体评估
-[AI生成: 基于所有分析的综合评估]
+### 综合评分
+[AI生成: 多维度评分（财务、政策、风险、市场）]
+- 财务维度: [AI生成] /100
+- 政策维度: [AI生成] /100
+- 风险维度: [AI生成] /100
+- 市场维度: [AI生成] /100
+- 加权总分: [AI生成] /100
+- 评级: [AI生成: 优秀/良好/一般/较差]
 
-### 7.2 投资建议
-**【推荐投资 / 谨慎投资 / 不推荐投资】**
+### 投资建议
+**[AI生成: 推荐/谨慎推荐/不推荐]**
 
-[AI生成: 一句话总结]
+#### 建议理由
+[AI生成: 基于以上分析的综合理由]
 
-### 7.3 核心优势
-[AI生成: 3-5条核心优势]
+#### 核心论据
+- IRR [AI生成] % [高于/低于]行业平均水平
+- NPV [AI生成] 万元 [表明价值创造/价值损失]
+- 政策支持 [稳定/不稳定]，预计补贴收入 [AI生成] 万元/年
+- 主要风险 [可控/不可控]
 
-### 7.4 关键成功因素
-[AI生成: 3-5条成功因素]
+### 行动建议
 
-### 7.5 实施建议
-[AI生成: 前期、建设、运营阶段建议]
+#### 立即行动
+[AI生成: 如适用的立即行动项]
 
-### 7.6 后续监控要求
-[AI生成: 监控计划和频率]`;
+#### 后续调研
+[AI生成: 如适用的后续调研项]
+
+#### 条件件
+[AI生成: 如适用的条件件建议]
+
+### 免责声明
+本投资建议基于当前可获得的信息做出。实际投资决策应考虑更详细的尽职调查和市场调研。`;
 
       default:
         return `## ${chapter}
@@ -288,7 +328,7 @@ ${criticalRisks}
     template: string,
     input: NarrativeInput
   ): Promise<string> {
-    const { chapter, context, targetAudience, language } = input;
+    const { chapter, context, targetAudience, language: _language } = input;
 
     // Prepare context for AI
     const contextSummary = this.prepareContextSummary(context, chapter);
@@ -327,11 +367,11 @@ ${audienceGuidance}
     const summaries: string[] = [];
 
     // Project info
-    summaries.push(`项目: ${context.project.name || '未命名项目'}`);
+    summaries.push(`项目: ${context.project.projectName || '未命名项目'}`);
     summaries.push(`省份: ${context.project.province || '未指定'}`);
 
     // Due diligence
-    if (chapter === 'owner_due_diligence' || chapter === 'risk_assessment') {
+    if (chapter === 'project_overview' || chapter === 'risk_assessment') {
       const dd = context.getDueDiligenceReport();
       if (dd) {
         summaries.push(`业主: ${dd.companyInfo.name}`);
@@ -340,20 +380,11 @@ ${audienceGuidance}
     }
 
     // Policy analysis
-    if (chapter === 'policy_analysis' || chapter === 'risk_assessment') {
+    if (chapter === 'policy_environment' || chapter === 'risk_assessment') {
       const policy = context.getPolicyAnalysisReport();
       if (policy) {
         summaries.push(`价差: ${policy.currentPolicy.priceSpread} 元/kWh`);
         summaries.push(`政策稳定性: ${policy.stability.rating}`);
-      }
-    }
-
-    // Technical proposal
-    if (chapter === 'technical_assessment') {
-      const tech = context.getTechnicalProposal();
-      if (tech) {
-        summaries.push(`推荐容量: ${tech.recommended.capacity} MWh`);
-        summaries.push(`推荐功率: ${tech.recommended.power} MW`);
       }
     }
 
@@ -386,18 +417,18 @@ ${audienceGuidance}
   }
 
   /**
-   * Get chapter name
+   * Get chapter name（新的 6 节结构）
    */
   private getChapterName(chapter: ChapterType): string {
     const names: Record<ChapterType, string> = {
+      executive_summary: '执行摘要',
       project_overview: '项目概况',
-      owner_due_diligence: '业主背景调查',
-      policy_analysis: '电价政策分析',
-      technical_assessment: '技术方案评估',
       financial_analysis: '财务分析',
+      policy_environment: '政策环境',
       risk_assessment: '风险评估',
       investment_recommendation: '投资建议',
     };
     return names[chapter] || chapter;
   }
+
 }

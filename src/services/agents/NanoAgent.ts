@@ -95,6 +95,41 @@ export class RateLimiter {
 }
 
 /**
+ * Timeout error for API calls
+ */
+export class TimeoutError extends Error {
+  constructor(message: string, public readonly timeout: number) {
+    super(message);
+    this.name = 'TimeoutError';
+  }
+}
+
+/**
+ * Shared timeout utility - execute a function with a timeout.
+ * Used by GLMClient and available for NanoAgent subclasses.
+ * @param fn - Function to execute
+ * @param timeoutMs - Timeout in milliseconds
+ * @param context - Description of the operation for error messages
+ * @throws {TimeoutError} If the operation times out
+ */
+export async function withTimeout<T>(
+  fn: () => Promise<T>,
+  timeoutMs: number,
+  context: string = 'operation'
+): Promise<T> {
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => {
+      reject(new TimeoutError(
+        `${context} timed out after ${timeoutMs}ms`,
+        timeoutMs
+      ));
+    }, timeoutMs);
+  });
+
+  return Promise.race([fn(), timeoutPromise]);
+}
+
+/**
  * Retry configuration for API calls
  */
 export interface RetryConfig {
@@ -263,12 +298,15 @@ class GLMClient {
     throw lastError;
   }
 
-  async messagesCreate(params: {
-    model: string;
-    max_tokens: number;
-    system: string;
-    messages: Array<{ role: string; content: string }>;
-  }): Promise<{ content: Array<{ type: string; text: string }> }> {
+  async messagesCreate(
+    params: {
+      model: string;
+      max_tokens: number;
+      system: string;
+      messages: Array<{ role: string; content: string }>;
+    },
+    timeoutMs: number = 30000 // Default 30 second timeout
+  ): Promise<{ content: Array<{ type: string; text: string }> }> {
     const logger = getCommunicationLogger();
     const requestId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const startTime = Date.now();
@@ -293,60 +331,63 @@ class GLMClient {
       console.log(`[${this.agentName}] Rate limit check passed, proceeding with API call`);
     }
 
-    // Execute with retry logic
-    const result = await this.executeWithRetry(async () => {
-      const response = await fetch(this.baseURL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: params.model,
-          messages: [
-            { role: 'system', content: params.system },
-            ...params.messages,
-          ],
-          max_tokens: params.max_tokens,
-          temperature: 0.3,
-        }),
-      });
-
-      const duration = Date.now() - startTime;
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        const error = new Error(`GLM API error: ${response.status} - ${errorText}`);
-        throw error;
-      }
-
-      const data = await response.json();
-      const responseText = data.choices[0]?.message?.content || '';
-
-      // 记录响应
-      logger.logResponse({
-        agentType: this.agentType,
-        agentName: this.agentName,
-        model: params.model,
-        response: responseText,
-        tokens: {
-          input: data.usage?.prompt_tokens || 0,
-          output: data.usage?.completion_tokens || 0,
-          total: data.usage?.total_tokens || 0,
-        },
-        duration,
-        requestId,
-      });
-
-      return {
-        content: [
-          {
-            type: 'text',
-            text: responseText,
+    // Execute with retry logic and timeout
+    const result = await withTimeout(
+      () => this.executeWithRetry(async () => {
+        const response = await fetch(this.baseURL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${this.apiKey}`,
           },
-        ],
-      };
-    }, requestId);
+          body: JSON.stringify({
+            model: params.model,
+            messages: [
+              { role: 'system', content: params.system },
+              ...params.messages,
+            ],
+            max_tokens: params.max_tokens,
+            temperature: 0.3,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          const error = new Error(`GLM API error: ${response.status} - ${errorText}`);
+          throw error;
+        }
+
+        const data = await response.json();
+        const responseText = data.choices[0]?.message?.content || '';
+        const duration = Date.now() - startTime;
+
+        // 记录响应
+        logger.logResponse({
+          agentType: this.agentType,
+          agentName: this.agentName,
+          model: params.model,
+          response: responseText,
+          tokens: {
+            input: data.usage?.prompt_tokens || 0,
+            output: data.usage?.completion_tokens || 0,
+            total: data.usage?.total_tokens || 0,
+          },
+          duration,
+          requestId,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: responseText,
+            },
+          ],
+        };
+      }, requestId),
+      timeoutMs,
+      `GLM API call (${params.model})`
+    );
 
     return result;
   }
@@ -427,21 +468,30 @@ export class NanoAgent {
    */
   protected getApiKey(): string | undefined {
     // Try environment variable first (Vite exposes VITE_ prefixed variables)
-    if (import.meta.env.VITE_GLM_API_KEY) {
+    // @ts-ignore - import.meta.env is Vite-specific
+    if (import.meta?.env?.VITE_GLM_API_KEY) {
+      // @ts-ignore
       return import.meta.env.VITE_GLM_API_KEY;
     }
 
+    // Fallback to process.env for Node.js/test environments
+    if (process.env.VITE_GLM_API_KEY) {
+      return process.env.VITE_GLM_API_KEY;
+    }
+
     // Fallback to localStorage for runtime configuration
-    const userKey = localStorage.getItem('glm_api_key');
+    const userKey = typeof localStorage !== 'undefined' ? localStorage.getItem('glm_api_key') : null;
     if (userKey) {
       return userKey;
     }
 
     // Also check for old anthropic key for migration
-    const oldKey = localStorage.getItem('anthropic_api_key');
+    const oldKey = typeof localStorage !== 'undefined' ? localStorage.getItem('anthropic_api_key') : null;
     if (oldKey) {
       // Migrate to new key name
-      localStorage.setItem('glm_api_key', oldKey);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('glm_api_key', oldKey);
+      }
       return oldKey;
     }
 
@@ -457,13 +507,19 @@ export class NanoAgent {
 
   /**
    * Get agent capabilities
+   * Override in subclasses that register with the agent orchestration framework.
    */
-  abstract getCapabilities(): AgentCapability[];
+  getCapabilities(): AgentCapability[] {
+    throw new Error(`${this.config.name} does not implement getCapabilities()`);
+  }
 
   /**
    * Execute a task
+   * Override in subclasses that register with the agent orchestration framework.
    */
-  abstract execute(input: any): Promise<any>;
+  async execute(_input: any): Promise<any> {
+    throw new Error(`${this.config.name} does not implement execute()`);
+  }
 
   /**
    * Run AI reasoning with automatic metric tracking

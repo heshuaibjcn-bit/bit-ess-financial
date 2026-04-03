@@ -213,6 +213,7 @@ Use professional, objective language. Base analysis on real policy trends and ma
 
     // High price spread indicates stable arbitrage opportunity
     if (priceSpread >= 0.7) {
+      rating = 'stable';
       factors.push('峰谷价差较大（≥0.7元/kWh），套利空间稳定');
     } else if (priceSpread >= 0.5) {
       factors.push('峰谷价差适中（0.5-0.7元/kWh），套利空间尚可');
