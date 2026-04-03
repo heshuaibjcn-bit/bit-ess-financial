@@ -395,6 +395,16 @@ describe('TechnicalProposalAgent', () => {
       const facilityInfo = createMockFacilityInfo();
       const tariffInfo = createMockTariffDetail();
 
+      // Mock getRecommendedConfiguration - note: does NOT include brands (brands are computed separately)
+      const mockGetConfig = vi.spyOn(agent, 'getRecommendedConfiguration' as any)
+        .mockResolvedValueOnce({
+          capacity: 1,
+          power: 0.5,
+          duration: 2,
+          technology: 'Lithium-ion (LiFePO4)',
+          chargeStrategy: 'Peak-valley arbitrage with demand response',
+        });
+
       // Mock generateRecommendations to return fallback recommendations
       const mockGenerateRecommendations = vi.spyOn(agent, 'generateRecommendations' as any)
         .mockResolvedValueOnce([
