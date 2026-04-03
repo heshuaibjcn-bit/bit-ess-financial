@@ -1,23 +1,6 @@
-if (typeof URL !== 'undefined') {
-  URL.createObjectURL = vi.fn(() => 'blob:mock-url');
-  URL.revokeObjectURL = vi.fn();
-}
-
-// Mock localStorage for zustand persist middleware
-const localStorageMock = {
-  getItem: vi.fn(() => null),
-  setItem: vi.fn(),
-  removeItem: vi.fn(),
-  clear: vi.fn(),
-};
-
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-  writable: true,
-});import { cleanup } from '@testing-library/react';
+import { cleanup } from '@testing-library/react';
 import { vi } from 'vitest';
 
-// Cleanup after each test
 afterEach(() => {
   cleanup();
 });
@@ -37,8 +20,20 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock URL.createObjectURL for PDF generation tests
-// Only mock methods, preserve URL constructor
+// Mock localStorage for zustand persist middleware
+const localStorageMock = {
+  getItem: vi.fn(() => null),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+};
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});
+
+//mock URL.createObjectURL for PDF generation tests
 if (typeof URL !== 'undefined') {
   URL.createObjectURL = vi.fn(() => 'blob:mock-url');
   URL.revokeObjectURL = vi.fn();
