@@ -1,5 +1,20 @@
-import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+if (typeof URL !== 'undefined') {
+  URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+  URL.revokeObjectURL = vi.fn();
+}
+
+// Mock localStorage for zustand persist middleware
+const localStorageMock = {
+  getItem: vi.fn(() => null),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn(),
+};
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock,
+  writable: true,
+});import { cleanup } from '@testing-library/react';
 import { vi } from 'vitest';
 
 // Cleanup after each test
