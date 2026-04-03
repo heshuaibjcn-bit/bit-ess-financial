@@ -314,8 +314,8 @@ Use professional engineering language. Base recommendations on proven technologi
     const cyclesPerDay = 1.5;
     const systemEfficiency = 0.90;
 
-    // Annual throughput
-    const annualThroughput = capacityKwh * dod * cyclesPerDay * 365;
+    // Annual throughput (convert back to MWh)
+    const annualThroughput = (capacityKwh * dod * cyclesPerDay * 365) / 1000;
 
     // Year 10 capacity (considering 2% annual degradation)
     const year10Capacity = Math.pow(1 - 0.02, 10);
