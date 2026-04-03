@@ -227,8 +227,8 @@ describe('TechnicalProposalAgent', () => {
 
       // 验证计算逻辑：capacity (MWh) * 1000 = kWh, DOD 0.9, cycles 1.5/day, 365 days
       // 1 * 1000 * 0.9 * 1.5 * 365 = 492,750 kWh/year ≈ 492.75 MWh/year
-      expect(result.expectedPerformance.annualThroughput).toBeCloseTo(492.75, 1);
-    });
+      // 1 * 1000 = 0.9 * 1.5 * 365 = 492750 kWh/year ≈ 492.75 MWh/year
+      expect(result.expectedPerformance.annualThroughput).toBeCloseTo(492.75, 1);    });
 
     it('应该正确预测第10年容量保持率', async () => {
       const facilityInfo = createMockFacilityInfo();
