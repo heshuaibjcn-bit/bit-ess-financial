@@ -129,10 +129,13 @@ describe('ProvinceDataRepository', () => {
       expect(result?.auxiliaryServices.available).toBe(true);
     });
 
-    it('should handle unknown province gracefully', async () => {
+    it('should handle unknown province with fallback data', async () => {
       const result = await repository.loadProvince('unknown-province');
 
-      expect(result).toBeNull();
+      // Unknown provinces get default/fallback data instead of null
+      expect(result).not.toBeNull();
+      expect(result?._source).toBe('default');
+      expect(result?.region).toBe('east'); // default region
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
