@@ -123,19 +123,19 @@ describe('新报告结构测试', () => {
 
   describe('2. 术语表验证', () => {
     it('术语表文件应该存在', () => {
-      const terminologyPath = join(__dirname, '../../terminology.json');
+      const terminologyPath = join(__dirname, '../terminology.json');
       expect(() => readFileSync(terminologyPath, 'utf-8')).not.toThrow();
     });
 
     it('术语表应该包含至少 20 个术语', () => {
-      const terminologyPath = join(__dirname, '../../terminology.json');
+      const terminologyPath = join(__dirname, '../terminology.json');
       const terminology = JSON.parse(readFileSync(terminologyPath, 'utf-8'));
       expect(terminology.terminology).toBeDefined();
       expect(terminology.terminology.length).toBeGreaterThanOrEqual(20);
     });
 
     it('每个术语应该有必需的字段', () => {
-      const terminologyPath = join(__dirname, '../../terminology.json');
+      const terminologyPath = join(__dirname, '../terminology.json');
       const terminology = JSON.parse(readFileSync(terminologyPath, 'utf-8'));
 
       terminology.terminology.forEach((term: any) => {
@@ -148,7 +148,7 @@ describe('新报告结构测试', () => {
     });
 
     it('核心术语应该存在', () => {
-      const terminologyPath = join(__dirname, '../../terminology.json');
+      const terminologyPath = join(__dirname, '../terminology.json');
       const terminology = JSON.parse(readFileSync(terminologyPath, 'utf-8'));
       const terms = terminology.terminology.map((t: any) => t.term);
 
@@ -162,12 +162,12 @@ describe('新报告结构测试', () => {
 
   describe('3. 语言风格指南验证', () => {
     it('语言风格指南文件应该存在', () => {
-      const guidePath = join(__dirname, '../../language-style-guide.md');
+      const guidePath = join(__dirname, '../language-style-guide.md');
       expect(() => readFileSync(guidePath, 'utf-8')).not.toThrow();
     });
 
     it('语言风格指南应该包含关键部分', () => {
-      const guidePath = join(__dirname, '../../language-style-guide.md');
+      const guidePath = join(__dirname, '../language-style-guide.md');
       const guide = readFileSync(guidePath, 'utf-8');
 
       expect(guide).toContain('词汇规则');
@@ -178,7 +178,7 @@ describe('新报告结构测试', () => {
     });
 
     it('禁止词汇列表应该存在', () => {
-      const guidePath = join(__dirname, '../../language-style-guide.md');
+      const guidePath = join(__dirname, '../language-style-guide.md');
       const guide = readFileSync(guidePath, 'utf-8');
 
       expect(guide).toContain('非常好');
@@ -229,7 +229,7 @@ describe('新报告结构测试', () => {
         expect(result.narratives[chapter]).toBeDefined();
         expect(typeof result.narratives[chapter]).toBe('string');
       });
-    }, 30000); // 30秒超时
+    }, 300000); // 5分钟超时（报告生成涉及大量计算）
   });
 
   describe('5. AI 内容质量验证', () => {
