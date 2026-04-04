@@ -383,12 +383,12 @@ export type ApplicationType = (typeof APPLICATION_TYPES)[number];
  */
 export const SystemSizeSchema = z.object({
   capacity: z.number()
-    .positive('Capacity must be positive (MW)')
-    .max(100, 'Capacity cannot exceed 100 MW')
+    .positive('系统容量必须大于0 (MW)')
+    .max(100, '系统容量不能超过100 MW')
     .default(2.0),
   duration: z.number()
-    .positive('Duration must be positive (hours)')
-    .max(8, 'Duration cannot exceed 8 hours')
+    .positive('储能时长必须大于0 (小时)')
+    .max(8, '储能时长不能超过8小时')
     .default(2),
 });
 
@@ -399,39 +399,39 @@ export type SystemSize = z.infer<typeof SystemSizeSchema>;
  */
 export const CostsSchema = z.object({
   batteryCostPerKwh: z.number()
-    .positive('Battery cost must be positive (¥/kWh)')
-    .max(5000, 'Battery cost seems too high (>5000 ¥/kWh)')
+    .positive('电池单价必须大于0 (¥/kWh)')
+    .max(5000, '电池单价似乎过高 (>5000 ¥/kWh)')
     .default(1200),
   pcsCostPerKw: z.number()
-    .positive('PCS cost must be positive (¥/kW)')
-    .max(1000, 'PCS cost seems too high (>1000 ¥/kW)')
+    .positive('PCS单价必须大于0 (¥/kW)')
+    .max(1000, 'PCS单价似乎过高 (>1000 ¥/kW)')
     .default(300),
   emsCost: z.number()
-    .nonnegative('EMS cost cannot be negative (¥)')
-    .max(1000000, 'EMS cost seems too high')
+    .nonnegative('EMS费用不能为负 (¥)')
+    .max(1000000, 'EMS费用似乎过高')
     .default(100000),
   installationCostPerKw: z.number()
-    .nonnegative('Installation cost cannot be negative (¥/kW)')
-    .max(500, 'Installation cost seems too high (>500 ¥/kW)')
+    .nonnegative('安装费用不能为负 (¥/kW)')
+    .max(500, '安装费用似乎过高 (>500 ¥/kW)')
     .default(150),
   gridConnectionCost: z.number()
-    .nonnegative('Grid connection cost cannot be negative (¥)')
-    .max(1000000, 'Grid connection cost seems too high')
+    .nonnegative('并网费用不能为负 (¥)')
+    .max(1000000, '并网费用似乎过高')
     .default(200000),
   landCost: z.number()
-    .nonnegative('Land cost cannot be negative (¥)')
+    .nonnegative('土地费用不能为负 (¥)')
     .default(0),
   developmentCost: z.number()
-    .nonnegative('Development cost cannot be negative (¥)')
-    .max(1000000, 'Development cost seems too high')
+    .nonnegative('开发费用不能为负 (¥)')
+    .max(1000000, '开发费用似乎过高')
     .default(150000),
   permittingCost: z.number()
-    .nonnegative('Permitting cost cannot be negative (¥)')
-    .max(500000, 'Permitting cost seems too high')
+    .nonnegative('许可费用不能为负 (¥)')
+    .max(500000, '许可费用似乎过高')
     .default(50000),
   contingencyPercent: z.number()
-    .min(0, 'Contingency cannot be negative')
-    .max(0.3, 'Contingency seems too high (>30%)')
+    .min(0, '不可预见费比例不能为负')
+    .max(0.3, '不可预见费比例似乎过高 (>30%)')
     .default(0.05),
 });
 
@@ -445,30 +445,30 @@ export const FinancingSchema = z.object({
     .default(false),
   // Equity ratio (0-100%) - percentage of self-funded investment
   equityRatio: z.number()
-    .min(0, 'Equity ratio cannot be negative')
-    .max(1, 'Equity ratio cannot exceed 100%')
+    .min(0, '资本金比例不能为负')
+    .max(1, '资本金比例不能超过100%')
     .default(1.0), // Default: 100% self-funded
   loanRatio: z.number()
-    .min(0, 'Loan ratio cannot be negative')
-    .max(0.9, 'Loan ratio cannot exceed 90%')
+    .min(0, '贷款比例不能为负')
+    .max(0.9, '贷款比例不能超过90%')
     .default(0.7)
     .optional(),
   interestRate: z.number()
-    .min(0, 'Interest rate cannot be negative')
-    .max(0.2, 'Interest rate cannot exceed 20% APR')
+    .min(0, '利率不能为负')
+    .max(0.2, '年利率不能超过20%')
     .default(0.045)
     .optional(),
   loanTerm: z.number()
-    .int('Loan term must be integer (years)')
-    .min(1, 'Loan term must be at least 1 year')
-    .max(20, 'Loan term cannot exceed 20 years')
+    .int('贷款期限必须为整数年')
+    .min(1, '贷款期限至少1年')
+    .max(20, '贷款期限不能超过20年')
     .default(10)
     .optional(),
   // Tax holiday: years before VAT/surcharges start (default: 6 years = start in year 7)
   taxHolidayYears: z.number()
-    .int('Tax holiday years must be integer')
-    .min(0, 'Tax holiday cannot be negative')
-    .max(10, 'Tax holiday cannot exceed 10 years')
+    .int('免税年限必须为整数')
+    .min(0, '免税年限不能为负')
+    .max(10, '免税年限不能超过10年')
     .default(6),
 });
 
@@ -479,24 +479,24 @@ export type Financing = z.infer<typeof FinancingSchema>;
  */
 export const OperatingParamsSchema = z.object({
   systemEfficiency: z.number()
-    .min(0, 'System efficiency cannot be negative')
-    .max(1, 'System efficiency cannot exceed 100%')
+    .min(0, '系统效率不能为负')
+    .max(1, '系统效率不能超过100%')
     .default(0.88),
   depthOfDischarge: z.number()
-    .min(0, 'DOD cannot be negative')
-    .max(1, 'DOD cannot exceed 100% of battery capacity')
+    .min(0, '放电深度不能为负')
+    .max(1, '放电深度不能超过100%')
     .default(0.9),
   cyclesPerDay: z.number()
-    .min(0.1, 'At least 0.1 cycles per day')
-    .max(4, 'Cannot exceed 4 cycles per day')
+    .min(0.1, '每天循环次数至少0.1次')
+    .max(4, '每天循环次数不能超过4次')
     .default(1.5),
   degradationRate: z.number()
-    .min(0, 'Degradation rate cannot be negative')
-    .max(0.1, 'Degradation rate seems too high (>10% per year)')
+    .min(0, '衰减率不能为负')
+    .max(0.1, '衰减率过高（超过10%/年）')
     .default(0.02),
   availabilityPercent: z.number()
-    .min(0, 'Availability cannot be negative')
-    .max(1, 'Availability cannot exceed 100%')
+    .min(0, '可用率不能为负')
+    .max(1, '可用率不能超过100%')
     .default(0.97),
 });
 
@@ -509,104 +509,104 @@ export type OperatingParams = z.infer<typeof OperatingParamsSchema>;
 export const OperatingCostsSchema = z.object({
   // 人力成本
   operationsStaffCost: z.number()
-    .nonnegative('Operations staff cost cannot be negative')
-    .max(5000000, 'Operations staff cost seems too high (>500万/年)')
+    .nonnegative('运维人员成本不能为负')
+    .max(5000000, '运维人员成本过高（超过500万/年）')
     .default(500000), // ¥50万/年 - 2名运维人员
 
   managementCost: z.number()
-    .nonnegative('Management cost cannot be negative')
-    .max(3000000, 'Management cost seems too high (>300万/年)')
+    .nonnegative('管理成本不能为负')
+    .max(3000000, '管理成本过高（超过300万/年）')
     .default(300000), // ¥30万/年 - 兼职管理
 
   technicalSupportCost: z.number()
-    .nonnegative('Technical support cost cannot be negative')
-    .max(2000000, 'Technical support cost seems too high (>200万/年)')
+    .nonnegative('技术支持成本不能为负')
+    .max(2000000, '技术支持成本过高（超过200万/年）')
     .default(200000), // ¥20万/年 - 技术支持
 
   // 办公成本
   officeRent: z.number()
-    .nonnegative('Office rent cannot be negative')
-    .max(1000000, 'Office rent seems too high (>100万/年)')
+    .nonnegative('办公租金不能为负')
+    .max(1000000, '办公租金过高（超过100万/年）')
     .default(100000), // ¥10万/年
 
   officeExpenses: z.number()
-    .nonnegative('Office expenses cannot be negative')
-    .max(500000, 'Office expenses seem too high (>50万/年)')
+    .nonnegative('办公费用不能为负')
+    .max(500000, '办公费用过高（超过50万/年）')
     .default(50000), // ¥5万/年 - 办公用品、差旅等
 
   // 维护成本
   regularMaintenanceCost: z.number()
-    .nonnegative('Regular maintenance cost cannot be negative')
-    .max(1000000, 'Regular maintenance seems too high (>100万/年)')
+    .nonnegative('定期维护成本不能为负')
+    .max(1000000, '定期维护成本过高（超过100万/年）')
     .default(200000), // ¥20万/年 - 定期检修
 
   preventiveMaintenanceCost: z.number()
-    .nonnegative('Preventive maintenance cost cannot be negative')
-    .max(500000, 'Preventive maintenance seems too high (>50万/年)')
+    .nonnegative('预防性维护成本不能为负')
+    .max(500000, '预防性维护成本过高（超过50万/年）')
     .default(80000), // ¥8万/年 - 预防性维护
 
   // 保险费用
   equipmentInsurance: z.number()
-    .nonnegative('Equipment insurance cannot be negative')
-    .max(500000, 'Equipment insurance seems too high (>50万/年)')
+    .nonnegative('设备保险费不能为负')
+    .max(500000, '设备保险费过高（超过50万/年）')
     .default(100000), // ¥10万/年 - 设备保险
 
   liabilityInsurance: z.number()
-    .nonnegative('Liability insurance cannot be negative')
-    .max(300000, 'Liability insurance seems too high (>30万/年)')
+    .nonnegative('责任保险费不能为负')
+    .max(300000, '责任保险费过高（超过30万/年）')
     .default(50000), // ¥5万/年 - 责任保险
 
   propertyInsurance: z.number()
-    .nonnegative('Property insurance cannot be negative')
-    .max(200000, 'Property insurance seems too high (>20万/年)')
+    .nonnegative('财产保险费不能为负')
+    .max(200000, '财产保险费过高（超过20万/年）')
     .default(30000), // ¥3万/年 - 财产保险
 
   // 其他运营费用
   licenseFee: z.number()
-    .nonnegative('License fee cannot be negative')
-    .max(200000, 'License fee seems too high (>20万/年)')
+    .nonnegative('许可证费用不能为负')
+    .max(200000, '许可证费用过高（超过20万/年）')
     .default(50000), // ¥5万/年 - 许可证年费
 
   regulatoryFee: z.number()
-    .nonnegative('Regulatory fee cannot be negative')
-    .max(100000, 'Regulatory fee seems too high (>10万/年)')
+    .nonnegative('监管费用不能为负')
+    .max(100000, '监管费用过高（超过10万/年）')
     .default(20000), // ¥2万/年 - 监管费用
 
   trainingCost: z.number()
-    .nonnegative('Training cost cannot be negative')
-    .max(200000, 'Training cost seems too high (>20万/年)')
+    .nonnegative('培训费用不能为负')
+    .max(200000, '培训费用过高（超过20万/年）')
     .default(30000), // ¥3万/年 - 培训
 
   utilitiesCost: z.number()
-    .nonnegative('Utilities cost cannot be negative')
-    .max(200000, 'Utilities cost seems too high (>20万/年)')
+    .nonnegative('水电通讯费不能为负')
+    .max(200000, '水电通讯费过高（超过20万/年）')
     .default(20000), // ¥2万/年 - 水电通讯
 
   // 税费（按年收入百分比或固定金额）
   vatRate: z.number()
-    .min(0, 'VAT rate cannot be negative')
-    .max(0.13, 'VAT rate cannot exceed 13%')
+    .min(0, '增值税率不能为负')
+    .max(0.13, '增值税率不能超过13%')
     .default(0.06), // 6% 增值税率（现代服务业）
 
   surtaxRate: z.number()
-    .min(0, 'Surtax rate cannot be negative')
-    .max(0.15, 'Surtax rate cannot exceed 15%')
+    .min(0, '附加税率不能为负')
+    .max(0.15, '附加税率不能超过15%')
     .default(0.12), // 12% 城建税及教育费附加
 
   corporateTaxRate: z.number()
-    .min(0, 'Corporate tax rate cannot be negative')
-    .max(0.25, 'Corporate tax rate cannot exceed 25%')
+    .min(0, '企业所得税率不能为负')
+    .max(0.25, '企业所得税率不能超过25%')
     .default(0.25), // 25% 企业所得税
 
   // 销售费用 - Fixed annual operating costs (from verified model)
   salesExpenses: z.number()
-    .nonnegative('Sales expenses cannot be negative')
-    .max(500000, 'Sales expenses seem too high (>50万/年)')
+    .nonnegative('销售费用不能为负')
+    .max(500000, '销售费用过高（超过50万/年）')
     .default(303818), // ¥30.38万/年 - 销售费用
 
   landLeaseCost: z.number()
-    .nonnegative('Land lease cost cannot be negative')
-    .max(2000000, 'Land lease seems too high (>200万/年)')
+    .nonnegative('土地租赁费不能为负')
+    .max(2000000, '土地租赁费过高（超过200万/年）')
     .default(100000), // ¥10万/年 - 土地租金（如果未一次性购买）
 });
 
@@ -619,7 +619,7 @@ export type OperatingCosts = z.infer<typeof OperatingCostsSchema>;
 export const ProjectInputSchema = z.object({
   // Existing fields (for backward compatibility)
   province: z.enum(PROVINCES, {
-    errorMap: () => ({ message: 'Invalid province. Must be one of the 31 supported regions.' }),
+    errorMap: () => ({ message: '无效的省份，请选择31个支持地区之一' }),
   }),
   systemSize: SystemSizeSchema,
   costs: CostsSchema,
@@ -627,11 +627,11 @@ export const ProjectInputSchema = z.object({
   operatingParams: OperatingParamsSchema,
   operatingCosts: OperatingCostsSchema.optional().default({}),
   projectName: z.string()
-    .min(1, 'Project name is required')
-    .max(200, 'Project name is too long')
+    .min(1, '请输入项目名称')
+    .max(200, '项目名称过长')
     .optional(),
   description: z.string()
-    .max(1000, 'Description is too long')
+    .max(1000, '项目描述过长')
     .optional(),
 
   // NEW: Business-driven fields
@@ -656,8 +656,8 @@ export const ScenarioInputSchema = z.object({
     'compensationRate',
   ]),
   change: z.number()
-    .min(-0.5, 'Change cannot be less than -50%')
-    .max(0.5, 'Change cannot exceed +50%')
+    .min(-0.5, '变化幅度不能小于-50%')
+    .max(0.5, '变化幅度不能超过+50%')
     .default(0.1),
 });
 
@@ -700,7 +700,7 @@ export const ProjectInputSchemaRefined = ProjectInputSchema.refine((data) => {
 
   return true;
 }, {
-  message: 'Project configuration is invalid',
+  message: '项目配置参数无效，请检查成本和运行参数是否合理'
   path: ['costs', 'operatingParams'],
 });
 
