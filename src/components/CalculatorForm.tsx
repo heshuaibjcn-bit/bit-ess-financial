@@ -309,7 +309,7 @@ export const CalculatorForm: React.FC<CalculatorFormProps> = ({
                         }`}
                         disabled={index > currentStep}
                       >
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${
+                        <div className={`w-11 h-11 rounded-full flex items-center justify-center font-semibold transition-colors ${
                           index === currentStep
                             ? 'bg-blue-600 text-white'
                             : index < currentStep

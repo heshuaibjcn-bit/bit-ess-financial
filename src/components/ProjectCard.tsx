@@ -147,7 +147,7 @@ export const ProjectCard = React.memo<ProjectCardProps>(({
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-y-1 group-hover:translate-y-0">
             <button
               onClick={handleDuplicate}
-              className="p-1.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all duration-200 hover:scale-105"
+              className="p-2.5 text-neutral-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-all duration-200 hover:scale-105"
               title={t('project.duplicate', { defaultValue: '复制' })}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -156,7 +156,7 @@ export const ProjectCard = React.memo<ProjectCardProps>(({
             </button>
             <button
               onClick={handleDelete}
-              className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg transition-all duration-200 hover:scale-105"
+              className="p-2.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg transition-all duration-200 hover:scale-105"
               title={t('project.delete', { defaultValue: '删除' })}
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -258,7 +258,7 @@ export const ProjectListItem = React.memo<ProjectCardProps>(({
         </button>
         <button
           onClick={handleDelete}
-          className="p-1.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg transition-all duration-200 hover:scale-105"
+          className="p-2.5 text-neutral-400 hover:text-error-600 hover:bg-error-50 rounded-lg transition-all duration-200 hover:scale-105"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H21.862a2 2 0 01-1.995-1.858L7 7m0 0a2 2 0 01-2-2V5a2 2 0 012-2h4a2 2 0 012 2v2M7 7h10" />

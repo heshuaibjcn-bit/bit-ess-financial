@@ -256,7 +256,7 @@ export const ProjectListPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => navigate('/settings')}
-                className="p-2 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100/80 rounded-xl transition-all duration-200 hover:scale-105"
+                className="p-2.5 text-neutral-500 hover:text-neutral-700 hover:bg-neutral-100/80 rounded-xl transition-all duration-200 hover:scale-105"
                 title={t('settings.title', { defaultValue: '设置' })}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -266,7 +266,7 @@ export const ProjectListPage: React.FC = () => {
               </button>
               <button
                 onClick={() => navigate('/admin')}
-                className="p-2 text-neutral-500 hover:text-primary-600 hover:bg-primary-50/80 rounded-xl transition-all duration-200 hover:scale-105"
+                className="p-2.5 text-neutral-500 hover:text-primary-600 hover:bg-primary-50/80 rounded-xl transition-all duration-200 hover:scale-105"
                 title="AI 管理"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

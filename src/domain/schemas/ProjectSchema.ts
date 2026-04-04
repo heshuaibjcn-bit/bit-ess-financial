@@ -700,7 +700,7 @@ export const ProjectInputSchemaRefined = ProjectInputSchema.refine((data) => {
 
   return true;
 }, {
-  message: '项目配置参数无效，请检查成本和运行参数是否合理'
+  message: '项目配置参数无效，请检查成本和运行参数是否合理',
   path: ['costs', 'operatingParams'],
 });
 
