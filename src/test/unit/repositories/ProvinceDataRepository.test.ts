@@ -147,7 +147,9 @@ describe('ProvinceDataRepository', () => {
 
       const result = await repository.loadProvince('guangdong');
 
-      expect(result).toBeNull();
+      // Known provinces with fetch errors fall back to default data
+      expect(result).not.toBeNull();
+      expect(result?._source).toBe('default');
     });
 
     it('should cache loaded data', async () => {
@@ -217,8 +219,9 @@ describe('ProvinceDataRepository', () => {
 
       const result = await repository.loadProvince('guangdong');
 
-      // Should return null due to validation failure
-      expect(result).toBeNull();
+      // Validation failures fall back to default data (not null)
+      expect(result).not.toBeNull();
+      expect(result?._source).toBe('default');
     });
   });
 
@@ -320,9 +323,10 @@ describe('ProvinceDataRepository', () => {
 
       const results = await repository.getProvinces(['guangdong', 'unknown-province']);
 
-      expect(results.size).toBe(1);
+      // Both provinces return data (unknown gets fallback)
+      expect(results.size).toBe(2);
       expect(results.get('guangdong')?.name).toBe('广东省');
-      expect(results.get('unknown-province')).toBeUndefined();
+      expect(results.get('unknown-province')?._source).toBe('default');
     });
   });
 
