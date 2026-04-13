@@ -495,12 +495,30 @@ export class CalculationEngine {
     const investorTotalRevenue = investorAnnualRevenue * projectLifetime;
     const ownerTotalRevenue = ownerAnnualRevenue * projectLifetime;
 
-    // Calculate investor IRR (simplified)
-    const investorInvestment = result.totalInvestment * (result.metrics.irr ? 0.01 : 0);
-    const investorIrr = investorInvestment > 0 ? (investorAnnualRevenue / investorInvestment) : 0;
+    // Calculate investor IRR based on collaboration model
+    let investorInvestment = 0;
+    switch (collaborationModel) {
+      case 'investor_owned':
+        investorInvestment = result.totalInvestment;
+        break;
+      case 'joint_venture':
+        investorInvestment = result.totalInvestment * (splitRatio / 100);
+        break;
+      case 'emc':
+        // In EMC mode, investor funds 100% of initial investment
+        investorInvestment = result.totalInvestment;
+        break;
+    }
 
-    // Owner IRR (only applicable if owner has revenue)
-    const ownerIrr = ownerAnnualRevenue > 0 ? (ownerAnnualRevenue / result.totalInvestment) * 0.5 : 0;
+    const investorIrr = investorInvestment > 0
+      ? (investorAnnualRevenue / investorInvestment) * 100
+      : 0;
+
+    // Owner IRR: owner's revenue vs their investment share
+    const ownerInvestment = result.totalInvestment - investorInvestment;
+    const ownerIrr = ownerInvestment > 0
+      ? (ownerAnnualRevenue / ownerInvestment) * 100
+      : 0;
 
     return {
       investorAnnualRevenue,

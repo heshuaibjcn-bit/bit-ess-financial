@@ -468,9 +468,7 @@ export class NanoAgent {
    */
   protected getApiKey(): string | undefined {
     // Try environment variable first (Vite exposes VITE_ prefixed variables)
-    // @ts-ignore - import.meta.env is Vite-specific
     if (import.meta?.env?.VITE_GLM_API_KEY) {
-      // @ts-ignore
       return import.meta.env.VITE_GLM_API_KEY;
     }
 
