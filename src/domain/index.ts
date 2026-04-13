@@ -19,7 +19,6 @@ export * from './repositories/interfaces';
 export * from './services/interfaces';
 
 // Service implementations (singleton instances)
-export { calculationService } from './services/CalculationServiceAdapter';
 export { provinceDataRepository } from './repositories/ProvinceDataRepository';
 export { BenchmarkEngine } from './services/BenchmarkEngine';
 export { SensitivityAnalyzer } from './services/SensitivityAnalyzer';

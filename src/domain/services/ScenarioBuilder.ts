@@ -233,7 +233,7 @@ export class ScenarioBuilder {
         return {
           costs: {
             ...input.costs,
-            battery: input.costs.battery * 0.8, // -20% battery cost
+            batteryCostPerKwh: input.costs.batteryCostPerKwh * 0.8, // -20% battery cost
           },
           operatingParams: {
             ...input.operatingParams,
@@ -246,7 +246,7 @@ export class ScenarioBuilder {
         return {
           costs: {
             ...input.costs,
-            battery: input.costs.battery * 1.2, // +20% battery cost
+            batteryCostPerKwh: input.costs.batteryCostPerKwh * 1.2, // +20% battery cost
           },
           operatingParams: {
             ...input.operatingParams,

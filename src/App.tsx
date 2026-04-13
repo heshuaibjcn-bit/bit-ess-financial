@@ -78,8 +78,7 @@ const DemoCalculator: React.FC = () => {
 
   useEffect(() => {
     if (result && provinces.length > 0 && !benchmarkComparison) {
-      // @ts-ignore - result may have input property
-      const input = result.input;
+      const input = (result as EngineResult & { input?: ProjectInput }).input;
       if (input) {
         benchmarkEngine.compare(input, result)
           .then(setBenchmarkComparison)

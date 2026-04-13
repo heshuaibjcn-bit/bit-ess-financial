@@ -55,7 +55,7 @@ describe('ProjectSchema', () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toContain('Invalid province');
+        expect(result.error.issues[0].message).toContain('无效');
       }
     });
   });
@@ -87,7 +87,7 @@ describe('ProjectSchema', () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toContain('cannot exceed 100 MW');
+        expect(result.error.issues[0].message).toContain('不能超过100');
       }
     });
 
@@ -116,7 +116,7 @@ describe('ProjectSchema', () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toContain('must be positive');
+        expect(result.error.issues[0].message).toContain('系统容量必须大于0');
       }
     });
   });
@@ -148,7 +148,7 @@ describe('ProjectSchema', () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toContain('too high');
+        expect(result.error.issues[0].message).toContain('电池单价似乎过高');
       }
     });
   });
@@ -180,7 +180,7 @@ describe('ProjectSchema', () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toContain('cannot exceed 100%');
+        expect(result.error.issues[0].message).toContain('系统效率不能超过100');
       }
     });
 
@@ -210,7 +210,7 @@ describe('ProjectSchema', () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toContain('Project configuration is invalid');
+        expect(result.error.issues[0].message).toContain('项目配置');
       }
     });
 
@@ -240,7 +240,7 @@ describe('ProjectSchema', () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toContain('Degradation');
+        expect(result.error.issues[0].message).toContain('衰减');
       }
     });
   });
@@ -280,7 +280,7 @@ describe('ProjectSchema', () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toContain('Loan ratio');
+        expect(result.error.issues[0].message).toContain('贷款比例');
       }
     });
 
@@ -318,7 +318,7 @@ describe('ProjectSchema', () => {
 
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues[0].message).toContain('Interest rate');
+        expect(result.error.issues[0].message).toContain('利率');
       }
     });
   });

@@ -27,6 +27,7 @@ interface CalculationState {
   result: EngineResult | null;
   loading: boolean;
   error: string | null;
+  lastInput: ProjectInput | null;
 
   // Metadata
   lastCalculated: Date | null;
@@ -52,6 +53,7 @@ export const useCalculationStore = create<CalculationState>((set, get) => ({
   result: null,
   loading: false,
   error: null,
+  lastInput: null,
   lastCalculated: null,
   cacheKey: null,
 
@@ -75,6 +77,7 @@ export const useCalculationStore = create<CalculationState>((set, get) => ({
         loading: false,
         lastCalculated: new Date(),
         cacheKey,
+        lastInput: input,
         error: null,
       });
 
@@ -84,6 +87,7 @@ export const useCalculationStore = create<CalculationState>((set, get) => ({
       set({
         loading: false,
         error: errorMessage,
+        lastInput: input,
       });
       throw error;
     }
@@ -95,6 +99,7 @@ export const useCalculationStore = create<CalculationState>((set, get) => ({
       result: null,
       cacheKey: null,
       lastCalculated: null,
+      lastInput: null,
       error: null,
     });
   },
@@ -106,18 +111,29 @@ export const useCalculationStore = create<CalculationState>((set, get) => ({
 
   // Retry last calculation
   retry: async () => {
-    const { result, cacheKey } = get();
+    const { lastInput } = get();
 
-    if (!result && !cacheKey) {
+    if (!lastInput) {
       throw new Error('No previous calculation to retry');
     }
 
-    // Get the input from cache or result
-    if (result) {
-      // Re-calculate with the same input that produced this result
-      // Note: This is a simplified retry - in production you'd store the input
-      set({ error: null, loading: true });
-      // The actual retry would need the original input
+    set({ error: null, loading: true });
+
+    try {
+      const result = await calculationEngine.calculateProject(lastInput);
+      set({
+        result,
+        loading: false,
+        lastCalculated: new Date(),
+        error: null,
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : '重试计算失败';
+      set({
+        loading: false,
+        error: errorMessage,
+      });
+      throw error;
     }
   },
 
