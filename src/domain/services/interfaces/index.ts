@@ -4,6 +4,5 @@
  * Exports all service interfaces for the domain layer
  */
 
-export * from './ICalculationService';
-export * from './ISensitivityService';
-export * from './IBenchmarkService';
+// All service interfaces have been removed in favor of
+// direct service implementations (CalculationEngine, etc.)
